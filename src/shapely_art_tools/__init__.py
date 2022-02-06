@@ -82,26 +82,101 @@ def circular_array(center_point, geom, count, geom_centroid=None, should_rotate=
 
     return result
 
+
+class Group:
+
+    def __init__(self, geoms=None):
+        self.geoms = geoms or sh.geometry.MultiPolygon([])
+
+        if isinstance(self.geoms, Group):
+            raise ValueError()
+
+    def anchor(self):
+        return Group(anchor_geom(self.geoms)(self.geoms))
+
+    def add_border(self, border_thickness, border_radius):
+        return Group(create_border_box(self.geoms))
+
+    def add(self, geom):
+        if isinstance(geom, Group):
+            return self.add(geom.geoms)
+        elif isinstance(geom, sh.geometry.base.BaseGeometry):
+            if geom.type == "MultiPolygon":
+                return Group(
+                    sh.geometry.MultiPolygon(
+                            [g for g in self.geoms.geoms] +
+                            [g for g in geom.geoms]
+                        ))
+            else:
+                return Group(
+                    sh.geometry.MultiPolygon(
+                            [g for g in self.geoms.geoms] +
+                            [ geom ]
+                        ))
+        else:
+            raise ValueError()
+
+
+    def to(self, x_coord, y_coord, center=(None, None)):
+
+        # if the user does not define a center, use the
+        # geometric centroid
+        cx = center[0] or self.geoms.centroid.x
+        cy = center[1] or self.geoms.centroid.y
+
+        dx = x_coord - cx
+        dy = y_coord - cx
+
+        return Group(sh.affinity.translate(self.geoms, dx, dy))
+
+    def spin(self, center_x, center_y, count, geom_centroid=None, should_rotate=False):
+
+        polys = circular_array(
+                sh.geometry.Point(center_x, center_y),
+                self.geoms,
+                count,
+                geom_centroid,
+                should_rotate)
+
+        result = self
+        for p in polys:
+            result = result.add(p)
+
+        return Group(result.geoms)
+
+    @staticmethod
+    def circle(cx, cy, diameter, resolution=0.5):
+        # resolution by default at least 1 step per 0.5mm
+        divisions = max(1, int(math.pi * diameter * 0.25 / resolution))
+
+        circle = sh.geometry.Point(cx, cy).buffer(diameter / 2, resolution=divisions)
+
+        return Group(sh.geometry.MultiPolygon([
+                circle
+            ]))
+
+
+    @staticmethod
+    def rect(start_x, start_y, width, height):
+        return Group(sh.geometry.MultiPolygon([
+                sh.geometry.box(start_x, start_y, start_x + width, start_y + height)
+            ]))
+
+    @staticmethod
+    def rect_centered(x, y, width, height):
+        return Group.rect(x - width / 2, y - height / 2, width, height)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("output", metavar="OUTPUT")
     args = parser.parse_args()
 
-    total_geoms = sh.geometry.MultiPolygon([])
-
-    # center box
-    total_geoms = append_geom(
-            total_geoms,
-            sh.geometry.box(0, 0, 20, 20))
-
-    # demonstrate circular array
-    total_geoms = append_geoms(
-            total_geoms,
-            circular_array(total_geoms.centroid, sh.geometry.Point(50, 0).buffer(8), 10))
-
-    # move the total geoms to top left
-    re_center = anchor_geom(total_geoms)
-    total_geoms = re_center(total_geoms)
+    total_geoms = Group.circle(50, 0, 20) \
+            .spin(0, 0, 12) \
+            .add(Group.rect_centered(0, 0, 10, 50)) \
+            .anchor() \
+            .geoms
 
     print(f"Total geometry dimensions: {total_geoms.bounds[2]}, {total_geoms.bounds[3]}")
 
