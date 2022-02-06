@@ -8,6 +8,8 @@ import shapely.geometry
 import shapely.affinity
 import shapely.ops
 
+import numpy as np
+
 import math
 import random
 import cairo
@@ -44,11 +46,41 @@ def append_geom(total_geoms, geom):
     return sh.geometry.MultiPolygon(
             [ g for g in total_geoms.geoms ] + [ geom ])
 
+def append_geoms(total_geoms, geoms):
+    return sh.geometry.MultiPolygon(
+            [ g for g in total_geoms.geoms ] + geoms)
+
 def anchor_geom(total_geoms):
     re_center_x = -total_geoms.bounds[0]
     re_center_y = -total_geoms.bounds[1]
 
     return lambda geom: sh.affinity.translate(geom, re_center_x, re_center_y)
+
+# generate circular array coordinates
+def circular_array_coords(radius, count):
+    return [ (radius * math.cos(a), radius * math.sin(a), a) for a in np.linspace(0, 2 * math.pi, count + 1) ][0:-1]
+
+# duplicate geom in circular array
+def circular_array(center_point, geom, count, geom_centroid=None, should_rotate=False):
+    if geom_centroid is None:
+        geom_centroid = geom.centroid
+
+    r = math.hypot(geom.centroid.x - center_point.x, geom.centroid.y - center_point.y)
+
+    coords = circular_array_coords(r, count)
+
+    result = []
+
+    for coord in coords:
+        translation_x = center_point.x + coord[0] - geom_centroid.x
+        translation_y = center_point.y + coord[1] - geom_centroid.y
+        instance = sh.affinity.translate(geom, translation_x, translation_y)
+        if should_rotate:
+            instance = sh.affinity.rotate(instance, coord[2], use_radians=True)
+
+        result.append(instance)
+
+    return result
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -57,26 +89,19 @@ if __name__ == "__main__":
 
     total_geoms = sh.geometry.MultiPolygon([])
 
-    # center hole
+    # center box
     total_geoms = append_geom(
             total_geoms,
-            sh.geometry.box(0, 0, 50, 170))
+            sh.geometry.box(0, 0, 20, 20))
 
-    text_points = []
-    for i in range(0, 10):
-        y = i * 8 * 2 + 8
-        height = 8 + (i - 5) * 0.1
-
-        cutout = sh.geometry.box(0, y, 30, y + height)
-
-        total_geoms = sh.geometry.MultiPolygon([total_geoms.difference(cutout)])
-
-        text_points.append((sh.geometry.Point( 31, y), height))
+    # demonstrate circular array
+    total_geoms = append_geoms(
+            total_geoms,
+            circular_array(total_geoms.centroid, sh.geometry.Point(50, 0).buffer(8), 10))
 
     # move the total geoms to top left
     re_center = anchor_geom(total_geoms)
     total_geoms = re_center(total_geoms)
-    text_points = [ (re_center(p), h) for p, h in text_points ]
 
     print(f"Total geometry dimensions: {total_geoms.bounds[2]}, {total_geoms.bounds[3]}")
 
@@ -92,9 +117,5 @@ if __name__ == "__main__":
 
     for g in total_geoms.geoms:
         draw_geom(c, g)
-
-    for p, h in text_points:
-        c.move_to(p.x, p.y + 3 * h / 4)
-        c.show_text(f"{h} mm")
 
     surface.finish()
