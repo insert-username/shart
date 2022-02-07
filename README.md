@@ -8,6 +8,15 @@ but I find its API to be a bit verbose at times. I created
 this lib to make my life a bit easier creating laser cutter
 art projects.
 
+# Limitations
+Since this lib is just a glorified wrapper class, it has the
+same limitations shapely does. Namely it does not support
+"true" curves (everything is a polygon). I get around this by
+estimating the number of segments required for e.g. a circle
+based on its size, but it's important to be aware that if you
+create a tiny circle and scale it up 100 times it won't be
+infinitely detailed. Same goes for any other curve objects.
+
 # Install
 
 Clone repo and run
