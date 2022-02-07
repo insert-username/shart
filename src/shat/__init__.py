@@ -82,6 +82,22 @@ def circular_array(center_point, geom, count, geom_centroid=None, should_rotate=
 
     return result
 
+def flatten_polygons(polygons):
+    result = []
+
+    for p in polygons:
+        if p.type == "MultiPolygon":
+            result =+ flatten_polygons([ g for g in p.geoms ])
+        else:
+            result.append(p)
+
+    return result
+
+def ensure_multipolygon(p):
+    if p.type == "MultiPolygon":
+        return p
+    else:
+        return sh.geometry.MultiPolygon([ p ])
 
 class Group:
 
@@ -94,8 +110,12 @@ class Group:
     def anchor(self):
         return Group(anchor_geom(self.geoms)(self.geoms))
 
-    def add_border(self, border_thickness, border_radius):
-        return Group(create_border_box(self.geoms))
+    def border(self, border_thickness, border_radius):
+        return Group(
+                sh.geometry.MultiPolygon(
+                        [ g for g in self.geoms.geoms ] + \
+                        [ create_border_box(self.geoms, border_thickness, border_radius) ]
+                    ))
 
     def add(self, geom):
         if isinstance(geom, Group):
@@ -116,6 +136,27 @@ class Group:
         else:
             raise ValueError()
 
+    def union(self, geom=None):
+        if geom is None:
+            polygons = flatten_polygons([ g for g in self.geoms.geoms ])
+
+            union = sh.ops.unary_union(polygons)
+
+            return Group(ensure_multipolygon(union))
+
+        elif isinstance(geom, Group):
+            return self.union(geom.geoms)
+        elif geom.type == "MultiPolygon":
+            subgeoms = [ g for g in geom.geoms ]
+
+            if len(subgeoms) != 1:
+                raise ValueError()
+
+            return self.union(subgeoms[0])
+        else:
+            return Group(
+                    sh.geometry.MultiPolygon([ g.union(geom) for g in self.geoms.geoms  ])
+                    )
 
     def to(self, x_coord, y_coord, center=(None, None)):
 
@@ -143,6 +184,14 @@ class Group:
             result = result.add(p)
 
         return Group(result.geoms)
+
+    def linarray(self, count, geom_modifier):
+        result = Group()
+        for i in range(0, count):
+            new_geom = geom_modifier(i, self)
+            result = result.add(new_geom)
+
+        return result
 
     @staticmethod
     def circle(cx, cy, diameter, resolution=0.5):
@@ -172,9 +221,29 @@ if __name__ == "__main__":
     parser.add_argument("output", metavar="OUTPUT")
     args = parser.parse_args()
 
-    total_geoms = Group.circle(50, 0, 20) \
+    total_geoms = Group() \
+            .add(Group.circle(0, 0, 10)) \
+            .add(Group.circle(0, 5, 10)) \
+            .add(Group.circle(5, 0, 10)) \
+            .union() \
+            .to(50, 0) \
+            .spin(0, 0, 12, should_rotate=True) \
+            .linarray(
+                    10,
+                    lambda i, g: g.to(0, i * 10)) \
+            .union() \
+            .to(100, 0) \
+            .spin(0, 0, 10, should_rotate=True) \
+            .anchor() \
+            .geoms
+
+    total_geoms1 = Group.circle(50, 0, 20) \
             .spin(0, 0, 12) \
-            .add(Group.rect_centered(0, 0, 10, 50)) \
+            .add(
+                    Group.rect_centered(0, 0, 10, 50).union(Group.rect_centered(0, 0, 50, 10)) \
+                    ) \
+            .add(Group.circle(0, 0, 140)) \
+            .border(10, 10) \
             .anchor() \
             .geoms
 

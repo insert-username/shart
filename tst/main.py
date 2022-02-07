@@ -3,7 +3,7 @@ from unittest.mock import Mock, MagicMock
 
 import shapely as sh
 import shapely.geometry
-import shapely_art_tools as sha
+import shat
 
 class TestMain(unittest.TestCase):
 
@@ -15,7 +15,7 @@ class TestMain(unittest.TestCase):
         geom_d = sh.geometry.box(3, 0, 1, 1)
 
         total_geoms = sh.geometry.MultiPolygon([ geom_a, geom_b, geom_c ])
-        total_geoms = sha.append_geom(total_geoms, geom_d)
+        total_geoms = shat.append_geom(total_geoms, geom_d)
 
         self.assertEqual(
                 [ g for g in total_geoms.geoms ],
@@ -25,7 +25,7 @@ class TestMain(unittest.TestCase):
     def test_anchor_geom(self):
         unanchored = sh.geometry.box(1, 2, 5, 5)
 
-        anchor_fn = sha.anchor_geom(unanchored)
+        anchor_fn = shat.anchor_geom(unanchored)
 
         anchored = anchor_fn(unanchored)
 
