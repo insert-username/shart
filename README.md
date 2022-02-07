@@ -22,7 +22,11 @@ Note you need the usual set of dependencies required when building pip packages.
 Central class of the API is a Group, which is a collection of one or more
 geometric objects (backed by a shapely MultiPolygon):
 
-## You can render directly to SVG
+## You can render directly to SVG (Using PyCairo)
+
+`svg_generator` is a lambda that accepts width/height arguments and provides
+a cairo surface from which a render context can be created. Use your own
+lambda for alternative outputs.
 
 ```
 Group.circle(0, 0, 100).render(Group.svg_generator("doc/circle.svg"))
