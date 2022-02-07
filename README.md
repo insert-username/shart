@@ -23,7 +23,6 @@ Group.circle(0, 0, 100).render(Group.svg_generator("circle.svg"))
 ```
 
 ![Generated SVG](./doc/circle.svg)
-<img src="./doc/circle.svg">
 
 ## Multiple shapes are allowed
 
@@ -34,7 +33,6 @@ Group.circle(0, 0, 100) \
 ```
 
 ![Generated SVG](./doc/circle-add.svg)
-<img src="./doc/circle-add.svg">
 
 ## Group is immutable so you can easily perform multiple transformations using the same base group
 
@@ -53,4 +51,3 @@ outer_circle \
 ```
 
 ![Generated SVG](./doc/circles.svg)
-<img src="./doc/circles.svg">
