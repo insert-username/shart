@@ -170,6 +170,10 @@ class Group:
 
         return Group(sh.affinity.translate(self.geoms, dx, dy))
 
+    def rotate(self, angle, use_radians=True):
+        return Group(sh.affinity.rotate(self.geoms, angle, use_radians=use_radians))
+
+
     def spin(self, center_x, center_y, count, geom_centroid=None, should_rotate=False):
 
         polys = circular_array(
