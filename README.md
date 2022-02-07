@@ -2,6 +2,12 @@
 
 Fluent api wrapper around shapely geometry library.
 
+# Why
+Shapely is a very powerful library with awesome features,
+but I find its API to be a bit verbose at times. I created
+this lib to make my life a bit easier creating laser cutter
+art projects.
+
 # Install
 
 Clone repo and run
