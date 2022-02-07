@@ -86,3 +86,22 @@ roup.rect_centered(0, 0, 10, 10) \
 ```
 
 ![Generated SVG](./doc/rects-linarray.svg)
+
+## Accessing the underlying MultiPolygon
+
+Since the API will never give you everything you could possibly want to do,
+You can just grab the underlying shapely MultiPolygon like so:
+
+```
+>>> from shat import Group
+>>> my_group = Group.circle(0, 0, 10)
+>>> type(my_group.geoms)
+<class 'shapely.geometry.multipolygon.MultiPolygon'>
+```
+
+You can just create a new group from a MultiPolygon
+
+```
+my_group = Group(my_old_group.geoms)
+```
+
