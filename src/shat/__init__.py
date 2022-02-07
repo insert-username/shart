@@ -204,6 +204,25 @@ class Group:
                 circle
             ]))
 
+    def render(self, surface_generator):
+
+        # most rendering surfaces require 0, 0 as
+        # an origin point so reset to origin
+        to_render = self.anchor()
+
+        surface = surface_generator(to_render.geoms.bounds[2], to_render.geoms.bounds[3])
+
+        c = cairo.Context(surface)
+        c.set_line_width(1)
+        c.set_line_join(cairo.LINE_JOIN_MITER)
+        #c.select_font_face("Linux Libertine O", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
+        #c.set_font_size(6)
+        c.set_source_rgb(0, 0, 0)
+
+        for g in to_render.geoms.geoms:
+            draw_geom(c, g)
+
+        surface.finish()
 
     @staticmethod
     def rect(start_x, start_y, width, height):
@@ -215,6 +234,9 @@ class Group:
     def rect_centered(x, y, width, height):
         return Group.rect(x - width / 2, y - height / 2, width, height)
 
+    @staticmethod
+    def svg_generator(name):
+        return lambda width, height: cairo.SVGSurface(name, width, height)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -244,22 +266,6 @@ if __name__ == "__main__":
                     ) \
             .add(Group.circle(0, 0, 140)) \
             .border(10, 10) \
-            .anchor() \
-            .geoms
+            .render(Group.svg_generator(args.output))
 
-    print(f"Total geometry dimensions: {total_geoms.bounds[2]}, {total_geoms.bounds[3]}")
 
-    surface = cairo.SVGSurface(args.output, total_geoms.bounds[2], total_geoms.bounds[3])
-    c = cairo.Context(surface)
-    c.set_line_width(2)
-    c.set_line_join(cairo.LINE_JOIN_MITER)
-    c.select_font_face("Linux Libertine O", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
-    c.set_font_size(6)
-
-    # determine text size
-    c.set_source_rgb(0.1, 0.1, 0.1)
-
-    for g in total_geoms.geoms:
-        draw_geom(c, g)
-
-    surface.finish()
