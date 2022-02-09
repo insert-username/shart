@@ -38,7 +38,7 @@ a cairo surface from which a render context can be created. Use your own
 lambda for alternative outputs.
 
 ```
-Group.circle(0, 0, 100).render(Group.svg_generator("doc/circle.svg"))
+Group.circle(0, 0, 100).render(Group.svg_generator("doc/circle"))
 ```
 
 ![Generated SVG](./doc/circle.svg)
@@ -48,7 +48,7 @@ Group.circle(0, 0, 100).render(Group.svg_generator("doc/circle.svg"))
 ```
 Group.circle(0, 0, 100) \
     .add(Group.circle(0, 0, 50)) \
-    .render(Group.svg_generator("doc/circle-add.svg"))
+    .render(Group.svg_generator("doc/circle-add"))
 ```
 
 ![Generated SVG](./doc/circle-add.svg)
@@ -65,7 +65,7 @@ inner_circle = Group.circle(0, 0, 20)
 outer_circle \
     .add(inner_circle.to(50, 0)) \
     .add(inner_circle.to(-50, 0)) \
-    .render(Group.svg_generator("doc/circles.svg"))
+    .render(Group.svg_generator("doc/circles"))
 
 ```
 
@@ -78,7 +78,7 @@ outer_circle \
     .add(inner_circle.to(50, 0)) \
     .add(inner_circle.to(-50, 0)) \
     .union() \
-    .render(Group.svg_generator("doc/circles.svg"))
+    .render(Group.svg_generator("doc/circles-union"))
 ```
 
 ![Generated SVG](./doc/circles-union.svg)
@@ -94,7 +94,7 @@ spin_rects \
         .spin(0, 0, 20, should_rotate=True) \
         .difference(center_rect) \
         .union() \
-        .render(Group.svg_generator("doc/boolean.svg"))
+        .render(Group.svg_generator("doc/boolean"))
 ```
 
 ![Generated SVG](./doc/boolean.svg)
@@ -104,7 +104,7 @@ spin_rects \
 ```
 Group.rect_centered(50, 0, 10, 10) \
     .spin(0, 0, 10, should_rotate=True) \
-    .render(Group.svg_generator("doc/rects.svg"))
+    .render(Group.svg_generator("doc/rects"))
 ```
 
 ![Generated SVG](./doc/rects.svg)
@@ -117,7 +117,7 @@ Pass in a lambda which applies the desired transformation for a given increment
 roup.rect_centered(0, 0, 10, 10) \
        .linarray(10,
                lambda i, g: g.to(i * 20, 0).rotate(i * 10, use_radians=False)) \
-       .render(Group.svg_generator("doc/rects-linarray.svg"))
+       .render(Group.svg_generator("doc/rects-linarray"))
 ```
 
 ![Generated SVG](./doc/rects-linarray.svg)

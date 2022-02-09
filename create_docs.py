@@ -3,7 +3,7 @@
 from shat import Group
 
 # Single shape
-Group.circle(0, 0, 100).render(Group.svg_generator("doc/circle"))
+Group.circle(0, 0, 100).render(Group.svg_generator("doc/circle", fill_background=True))
 
 
 # Multiple shapes are allowed
@@ -28,7 +28,7 @@ outer_circle \
     .add(inner_circle.to(50, 0)) \
     .add(inner_circle.to(-50, 0)) \
     .union() \
-    .render(Group.svg_generator("doc/circles", fill_background=True))
+    .render(Group.svg_generator("doc/circles-union", fill_background=True))
 
 
 # Boolean operations
