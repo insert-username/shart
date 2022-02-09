@@ -83,6 +83,22 @@ outer_circle \
 
 ![Generated SVG](./doc/circles-union.svg)
 
+## Boolean operations
+
+```
+center_rect = Group.rect_centered(0, 0, 100, 100)
+
+spin_rects = Group.rect(0, -5, 100, 10)
+
+spin_rects \
+        .spin(0, 0, 20, should_rotate=True) \
+        .difference(center_rect) \
+        .union() \
+        .render(Group.svg_generator("doc/boolean.svg"))
+```
+
+![Generated SVG](./doc/boolean.svg)
+
 ## Using spin()
 
 ```

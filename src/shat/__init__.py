@@ -136,6 +136,12 @@ class Group:
         else:
             raise ValueError()
 
+    def intersection(self, geom):
+        return self.foreach_modify(lambda g: g.intersection(geom.geoms))
+
+    def difference(self, geom):
+        return self.foreach_modify(lambda g: g.difference(geom.geoms))
+
     def union(self, geom=None):
         if geom is None:
             polygons = flatten_polygons([ g for g in self.geoms.geoms ])
@@ -197,6 +203,9 @@ class Group:
 
         return result
 
+    def foreach_modify(self, modifier):
+        return Group.from_geomarray([ modifier(g) for g in self.geoms.geoms ])
+
     @staticmethod
     def circle(cx, cy, diameter, resolution=0.5):
         # resolution by default at least 1 step per 0.5mm
@@ -241,6 +250,10 @@ class Group:
     @staticmethod
     def svg_generator(name):
         return lambda width, height: cairo.SVGSurface(name, width, height)
+
+    @staticmethod
+    def from_geomarray(geomarray):
+        return Group(sh.geometry.MultiPolygon(geomarray))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
