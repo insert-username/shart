@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 
+import math
+
+import itertools
+
 from shat import Group
+from shat import Coordinates
 
 # Single shape
 Group.circle(0, 0, 100).render(Group.svg_generator("doc/circle", fill_background=True))
@@ -57,3 +62,37 @@ Group.rect_centered(0, 0, 10, 10) \
        .render(Group.svg_generator("doc/rects-linarray", fill_background=True))
 
 
+# Creating hexagonal tiling
+lattice_spacing = 10
+
+row_count = 17
+col_count = 17
+
+def gen_row(row_number, g):
+    num_cols = col_count if row_number % 2 == 0 else col_count - 1
+
+    row_y = row_number * math.sqrt(3 / 4) * lattice_spacing
+    col_x = 0 if row_number % 2 == 0 else lattice_spacing / 2
+
+    # create the first row element
+    row_start = g.translate(col_x, row_y)
+
+    # fill in the remainder of the row
+    return row_start.linarray(
+            num_cols,
+            lambda i, g: g.translate(i * lattice_spacing, 0))
+
+lattice = Group.circle(0, 0, 4).linarray(row_count, gen_row)
+
+container = Group.circle(70, 70, 140)
+
+lattice.filter(lambda g: container.contains(g)) \
+    .add(container) \
+    .render(Group.svg_generator("doc/hexagons-hard", fill_background=True))
+
+# Creating hexagonal tiling, the easy way
+Group() \
+        .add_all(Group.circle(c[0], c[1], 4) for c in Coordinates.hex(17, 17, 10)) \
+        .filter(lambda g: container.contains(g)) \
+        .add(container) \
+        .render(Group.svg_generator("doc/hexagons", fill_background=True))

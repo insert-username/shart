@@ -117,6 +117,11 @@ class Group:
                         [ create_border_box(self.geoms, border_thickness, border_radius) ]
                     ))
 
+
+    def filter(self, predicate):
+        return Group.from_geomarray([ g for g in self.geoms.geoms if predicate(Group.from_geomarray([g])) ])
+
+
     def add(self, geom):
         if isinstance(geom, Group):
             return self.add(geom.geoms)
@@ -135,6 +140,14 @@ class Group:
                         ))
         else:
             raise ValueError()
+
+    def add_all(self, groups):
+        new_geoms = [ g for g in self.geoms.geoms ]
+
+        for group in groups:
+            new_geoms += [ g for g in group.geoms.geoms ]
+
+        return Group.from_geomarray(new_geoms)
 
     def intersection(self, geom):
         return self.foreach_modify(lambda g: g.intersection(geom.geoms))
@@ -174,6 +187,9 @@ class Group:
         dx = x_coord - cx
         dy = y_coord - cx
 
+        return Group(sh.affinity.translate(self.geoms, dx, dy))
+
+    def translate(self, dx, dy):
         return Group(sh.affinity.translate(self.geoms, dx, dy))
 
     def rotate(self, angle, use_radians=True):
@@ -237,6 +253,18 @@ class Group:
 
         surface.finish()
 
+
+    def contains(self, group):
+        # returns true if any of this groups geoms contain ALL of
+        # the supplied groups geoms
+        for g in self.geoms.geoms:
+
+            if all(g.covers(h) and not g.crosses(h) for h in group.geoms.geoms):
+                return True
+
+        return False
+
+
     @staticmethod
     def rect(start_x, start_y, width, height):
         return Group(sh.geometry.MultiPolygon([
@@ -269,6 +297,36 @@ class Group:
     @staticmethod
     def from_geomarray(geomarray):
         return Group(sh.geometry.MultiPolygon(geomarray))
+
+
+class Coordinates:
+
+    def __init__(self, values):
+        self.values = list(values)
+
+
+    def offset(self, dx=0, dy=0):
+        return Coordinates([ (c[0] + dx, c[1] + dy) for c in self.values ])
+
+    def __iter__(self):
+        return self.values.__iter__()
+
+    @staticmethod
+    def linear(count, dx=0, dy=0):
+        return Coordinate([ (dx * i, dy * i) for i in range(0, count) ])
+
+    @staticmethod
+    def hex(rows, columns, lattice_spacing):
+        column_spacing = lattice_spacing
+        row_spacing = math.sqrt(3/4) * lattice_spacing
+
+        for row in range(0, rows):
+            col_count = columns if row % 2 == 0 else columns - 1
+            col_start = 0 if row % 2 == 0 else lattice_spacing / 2
+
+            for col in range(0, col_count):
+                yield((col * column_spacing + col_start, row * row_spacing))
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

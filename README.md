@@ -122,6 +122,70 @@ roup.rect_centered(0, 0, 10, 10) \
 
 ![Generated SVG](./doc/rects-linarray.svg)
 
+## Hexagonal arrays/tiling
+
+### The easy way, using Coordinates
+
+```
+from shat import Coordinates
+
+container = Group.circle(70, 70, 140)
+
+Group() \
+        .add_all(Group.circle(c[0], c[1], 4) for c in Coordinates.hex(17, 17, 10)) \
+        .filter(lambda g: container.contains(g)) \
+        .add(container) \
+        .render(Group.svg_generator("doc/hexagons", fill_background=True))
+```
+
+![Generated SVG](./doc/hexagons.svg)
+
+### The hard way, using math (shudder...)
+
+Hexagonal tiles are just arrays with varying numbers of elements in each row.
+For a hexagonal arrangement, column (x) spacing is some length l, then row
+spacing will be sqrt(3/4)l. In addition, oddly numbered rows will be offset
+by l/2.
+
+With this information it's possible to determine the necessary 2d array coords:
+
+```
+lattice_spacing = 10
+
+row_count = 17
+col_count = 17
+
+def gen_row(row_number, g):
+    num_cols = col_count if row_number % 2 == 0 else col_count - 1
+
+    row_y = row_number * math.sqrt(3 / 4) * lattice_spacing
+    col_x = 0 if row_number % 2 == 0 else lattice_spacing / 2
+
+    # create the first row element
+    row_start = g.translate(col_x, row_y)
+
+    # fill in the remainder of the row
+    return row_start.linarray(
+            num_cols,
+            lambda i, g: g.translate(i * lattice_spacing, 0))
+
+lattice = Group.circle(0, 0, 4).linarray(row_count, gen_row)
+
+container = Group.circle(70, 70, 140)
+
+lattice.filter(lambda g: container.contains(g)) \
+    .add(container) \
+    .render(Group.svg_generator("doc/hexagons-hard", fill_background=True))
+
+```
+
+Also here I use `filter()` to only include the circles inside the larger circle.
+
+The result is the same.
+
+![Generated SVG](./doc/hexagons-hard.svg)
+
+
 ## Accessing the underlying MultiPolygon
 
 Since the API will never give you everything you could possibly want to do,
