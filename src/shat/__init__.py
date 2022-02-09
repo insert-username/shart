@@ -248,8 +248,23 @@ class Group:
         return Group.rect(x - width / 2, y - height / 2, width, height)
 
     @staticmethod
-    def svg_generator(name):
-        return lambda width, height: cairo.SVGSurface(name, width, height)
+    def svg_generator(name, append_dimension_info=False, fill_background=False):
+        name_modifier = lambda width, height: f"{name}_{width}_{height}.svg" if append_dimension_info else f"{name}.svg"
+
+        def prepare_svg_surface(width, height):
+            output_name = f"{name}_{width}_{height}.svg" if append_dimension_info else f"{name}.svg"
+
+            result = cairo.SVGSurface(output_name, width, height)
+
+            if fill_background:
+                c = cairo.Context(result)
+                c.set_source_rgb(1, 1, 1)
+                c.rectangle(0, 0, width, height)
+                c.fill()
+
+            return result
+
+        return prepare_svg_surface
 
     @staticmethod
     def from_geomarray(geomarray):
@@ -283,6 +298,6 @@ if __name__ == "__main__":
                     ) \
             .add(Group.circle(0, 0, 140)) \
             .border(10, 10) \
-            .render(Group.svg_generator(args.output))
+            .render(Group.svg_generator(args.output, append_dimension_info=True, fill_background=True))
 
 
