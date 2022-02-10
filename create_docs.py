@@ -190,3 +190,9 @@ bf.generate_group() \
     .do_and_add(lambda g: g.translate(0, 111)) \
     .border(20, 20) \
     .render(Group.svg_generator("doc/finger-joint", fill_background=True))
+
+# Rendering non-group geoms
+extra_geoms = [ sh.geometry.LineString([ ( 50 / math.sqrt(2), 50 / math.sqrt(2) ), ( 100, 100 ) ]) ]
+Group.circle(0, 0, 100) \
+    .add(Group.circle(0, 0, 50)) \
+    .render(Group.svg_generator("doc/non-group", fill_background=True), geom_modifier=lambda g: itertools.chain(g, extra_geoms))

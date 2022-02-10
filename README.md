@@ -299,6 +299,16 @@ bf.generate_group() \
 
 ![Generated SVG](./doc/finger-joint.svg)
 
+# Rendering geometries not based on a group
+```python
+extra_geoms = [ sh.geometry.LineString([ ( 50 / math.sqrt(2), 50 / math.sqrt(2) ), ( 100, 100 ) ]) ]
+Group.circle(0, 0, 100) \
+    .add(Group.circle(0, 0, 50)) \
+    .render(Group.svg_generator("doc/non-group", fill_background=True), geom_modifier=lambda g: itertools.chain(g, extra_geoms))
+```
+
+![Generated SVG](./doc/non-group.svg)
+
 ## Accessing the underlying MultiPolygon
 
 Since the API will never give you everything you could possibly want to do,

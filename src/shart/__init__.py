@@ -14,15 +14,29 @@ import math
 import random
 import cairo
 
-def draw_geom(c, geom, fill=False):
-    line_points = geom.exterior.coords
+
+def draw_geom(c, geom, fill=False, dx=0, dy=0):
+    if geom.type == "Polygon":
+        _draw_line(c, geom.exterior.coords, fill, dx, dy)
+    elif geom.type == "LineString":
+        _draw_line(c, geom.coords, fill, dx, dy)
+    elif geom.type == "MultiLineString":
+        for g in geom.geoms:
+            draw_geom(c, g, fill, dx, dy)
+    else:
+        raise ValueError(f"Unsupported geom type: {geom.type}")
+
+
+def _draw_line(c, line_points, fill=False, dx=0, dy=0):
+    if len(line_points) == 0:
+        return
 
     c.new_path()
 
-    c.move_to(line_points[0][0], line_points[0][1])
+    c.move_to(line_points[0][0] + dx, line_points[0][1] + dy)
 
     for i, p in enumerate(line_points):
-        c.line_to(p[0], p[1])
+        c.line_to(p[0] + dx, p[1] + dy)
 
     if fill:
         c.fill()
@@ -266,13 +280,16 @@ class Group:
                 circle
             ]))
 
-    def render(self, surface_generator):
+    def render(self, surface_generator, geom_modifier=lambda g: g):
 
         # most rendering surfaces require 0, 0 as
         # an origin point so reset to origin
-        to_render = self.anchor()
+        render_offsets = (
+            -self.geoms.bounds[0],
+            -self.geoms.bounds[1]
+        )
 
-        surface = surface_generator(to_render.geoms.bounds[2], to_render.geoms.bounds[3])
+        surface = surface_generator(self.geoms.bounds[2] - self.geoms.bounds[0], self.geoms.bounds[3] - self.geoms.bounds[1])
 
         c = cairo.Context(surface)
         c.set_line_width(1)
@@ -281,8 +298,10 @@ class Group:
         #c.set_font_size(6)
         c.set_source_rgb(0, 0, 0)
 
-        for g in to_render.geoms.geoms:
-            draw_geom(c, g)
+        to_render = geom_modifier(self.geoms.geoms)
+
+        for g in to_render:
+            draw_geom(c, g, dx=render_offsets[0], dy=render_offsets[1])
 
         surface.finish()
 
