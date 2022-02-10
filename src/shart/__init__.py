@@ -433,34 +433,91 @@ class Coordinates:
         return Coordinates(result)
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("output", metavar="OUTPUT")
-    args = parser.parse_args()
+class BoxFace:
 
-    total_geoms = Group() \
-            .add(Group.circle(0, 0, 10)) \
-            .add(Group.circle(0, 5, 10)) \
-            .add(Group.circle(5, 0, 10)) \
-            .union() \
-            .to(50, 0) \
-            .spin(0, 0, 12, should_rotate=True) \
-            .linarray(
-                    10,
-                    lambda i, g: g.to(0, i * 10)) \
-            .union() \
-            .to(100, 0) \
-            .spin(0, 0, 10, should_rotate=True) \
-            .anchor() \
-            .geoms
+    def __init__(self, polygon):
+        if polygon.type != "Polygon":
+            raise ValueError("")
 
-    total_geoms1 = Group.circle(50, 0, 20) \
-            .spin(0, 0, 12) \
-            .add(
-                    Group.rect_centered(0, 0, 10, 50).union(Group.rect_centered(0, 0, 50, 10)) \
-                    ) \
-            .add(Group.circle(0, 0, 140)) \
-            .border(10, 10) \
-            .render(Group.svg_generator(args.output, append_dimension_info=True, fill_background=True))
+        self._polygon = polygon
+        self._finger_generators = {}
+
+    def assign_edge(self, edge_index, finger_generator):
+        if edge_index in self._finger_generators:
+            raise ValueError("Face already assigned.")
+
+        self._finger_generators[edge_index] = finger_generator
+
+    def generate_group(self):
+        result = Group.from_geomarray([ self._polygon ])
+
+        for index, edge in enumerate(self.edges):
+            finger_generator = self._finger_generators.get(index, None)
+
+            if finger_generator is not None:
+                result = result.add(finger_generator.get_fingers(edge))
+
+        return result
+
+    @property
+    def edges(self):
+        coords = self._polygon.exterior.coords
+        if self._polygon.exterior.is_ccw:
+            coords = list(reversed(coords))
+        else:
+            coords = list(coords)
+
+        return [ (coords[i], coords[i + 1]) for i in range(0, len(coords) - 1) ]
+
+
+class FingerGenerator:
+
+    def __init__(self, period, duty, is_male, width, kerf, clearance):
+        self.period = period
+        self.duty = duty
+        self._is_male = is_male
+        self.width = width
+        self.kerf = kerf
+        self.clearance = clearance
+
+    # returns a group representing
+    # the fingers to be attached
+    def get_fingers(self, edge):
+        p0 = edge[0]
+        p1 = edge[1]
+
+        dx = p0[0] - p1[0]
+        dy = p0[1] - p1[1]
+
+        edge_length = math.hypot(dx, dy)
+
+        periods = math.ceil(edge_length / self.period)
+
+        result = Group()
+        for i in range(0, periods):
+            period_start = i * self.period
+
+            if self._is_male:
+                box_start = period_start
+                box_end = min(edge_length, box_start + self.period * self.duty)
+            else:
+                box_start = min(edge_length, period_start + self.period * self.duty)
+                box_end = min(edge_length, (i + 1) * self.period)
+
+            # apply the clearance offsets
+            box_start = max(0, box_start - self.kerf / 2 + self.clearance / 2)
+            box_end = min(edge_length, box_end + self.kerf / 2 - self.clearance / 2)
+
+            box_length = box_end - box_start
+
+            if box_length > self.kerf:
+                result = result.add(Group.rect(
+                    box_start,
+                    0,
+                    box_length,
+                    -self.width))
+
+        return result.translate(p1[0], p1[1]) \
+            .rotate(math.atan2(dy, dx), origin=p1)
 
 

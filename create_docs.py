@@ -9,7 +9,8 @@ import numpy as np
 from shart import Group
 from shart import Coordinates
 
-
+import shapely as sh
+import shapely.geometry
 
 # Single shape
 
@@ -170,3 +171,21 @@ Group.rect(0, 0, 100, 100) \
     .recurse(branching_fractal_visitor, 6) \
     .border(20, 20) \
     .render(Group.svg_generator("doc/recurse-tree", fill_background=True))
+
+from shart import BoxFace, FingerGenerator
+
+fgen_male = FingerGenerator(100 / 4.5, 0.5, True, 8, kerf=3, clearance=5)
+fgen_female = FingerGenerator(100 / 4.5, 0.5, False, 8, kerf=3, clearance=5)
+
+bf = BoxFace(sh.geometry.box(0, 0, 100, 100))
+bf.assign_edge(0, fgen_male)
+bf.assign_edge(1, fgen_female)
+bf.assign_edge(2, fgen_female)
+bf.assign_edge(3, fgen_male)
+
+bf.generate_group() \
+    .union() \
+    .do_and_add(lambda g: g.translate(111, 0)) \
+    .do_and_add(lambda g: g.translate(0, 111)) \
+    .border(20, 20) \
+    .render(Group.svg_generator("doc/finger-joint", fill_background=True))
