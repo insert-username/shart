@@ -382,7 +382,7 @@ class Coordinates:
         return Coordinates([ (x0 + dx * i, y0 + dy * i) for i in range(0, count) ])
 
     @staticmethod
-    def hex_covering(lattice_spacing, group):
+    def hex_covering(lattice_spacing, group, row_parity=None, column_parity=None):
         x0 = group.geoms.bounds[0]
         y0 = group.geoms.bounds[1]
         x1 = group.geoms.bounds[2]
@@ -396,9 +396,19 @@ class Coordinates:
 
         row_spacing = math.sqrt(3/4) * lattice_spacing
 
+        column_count = math.ceil(width / lattice_spacing)
+        if column_parity is not None:
+            if (column_count % 2 == 0) != column_parity:
+                column_count += 1
+
+        row_count = math.ceil(height / row_spacing)
+        if row_parity is not None:
+            if (row_count % 2 == 0) != row_parity:
+                row_count += 1
+
         return Coordinates.hex(
-                math.ceil(width / lattice_spacing),
-                math.ceil(height / row_spacing),
+                column_count,
+                row_count,
                 lattice_spacing,
                 centered_on=(mid_x, mid_y))
 

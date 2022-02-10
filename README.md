@@ -261,7 +261,7 @@ Group() \
 flower = Coordinates.polar(300, lambda t: 10 + 150 * abs(math.cos(t * 3))).to_group()
 
 hexagon = Coordinates.polar(6, lambda t: 2).to_group()
-hexagons = Group().add_all(hexagon.to(c[0], c[1]) for c in Coordinates.hex_covering(4 * math.sqrt(4/3), flower))
+hexagons = Group().add_all(hexagon.to(c[0], c[1]) for c in Coordinates.hex_covering(4 * math.sqrt(4/3), flower, row_parity=True))
 
 bars = Group() \
         .add_all(Group.rect_centered(0, c[1], 320, 20) for c in Coordinates.linear(10, dy=40, centered_on=(0, 0))) \
