@@ -20,7 +20,7 @@ infinitely detailed. Same goes for any other curve objects.
 # Install
 
 Clone repo and run
-```
+```bash
 ./build-and-install.sh
 ```
 
@@ -37,7 +37,7 @@ geometric objects (backed by a shapely MultiPolygon):
 a cairo surface from which a render context can be created. Use your own
 lambda for alternative outputs.
 
-```
+```python
 Group.circle(0, 0, 100).render(Group.svg_generator("doc/circle"))
 ```
 
@@ -45,7 +45,7 @@ Group.circle(0, 0, 100).render(Group.svg_generator("doc/circle"))
 
 ## Multiple shapes are allowed
 
-```
+```python
 Group.circle(0, 0, 100) \
     .add(Group.circle(0, 0, 50)) \
     .render(Group.svg_generator("doc/circle-add"))
@@ -55,7 +55,7 @@ Group.circle(0, 0, 100) \
 
 ## Group is immutable so you can easily perform multiple transformations using the same base group
 
-```
+```python
 from shart import Group
 
 outer_circle = Group.circle(0, 0, 100)
@@ -73,7 +73,7 @@ outer_circle \
 
 ## Using union()
 
-```
+```python
 outer_circle \
     .add(inner_circle.to(50, 0)) \
     .add(inner_circle.to(-50, 0)) \
@@ -85,7 +85,7 @@ outer_circle \
 
 ## Boolean operations
 
-```
+```python
 center_rect = Group.rect_centered(0, 0, 100, 100)
 
 spin_rects = Group.rect(0, -5, 100, 10)
@@ -101,7 +101,7 @@ spin_rects \
 
 ## Using spin()
 
-```
+```python
 Group.rect_centered(50, 0, 10, 10) \
     .spin(0, 0, 10, should_rotate=True) \
     .render(Group.svg_generator("doc/rects"))
@@ -113,7 +113,7 @@ Group.rect_centered(50, 0, 10, 10) \
 
 Pass in a lambda which applies the desired transformation for a given increment
 
-```
+```python
 roup.rect_centered(0, 0, 10, 10) \
        .linarray(10,
                lambda i, g: g.to(i * 20, 0).rotate(i * 10, use_radians=False)) \
@@ -126,7 +126,7 @@ roup.rect_centered(0, 0, 10, 10) \
 
 ### The easy way, using Coordinates
 
-```
+```python
 from shart import Coordinates
 
 container = Group.circle(70, 70, 140)
@@ -149,7 +149,7 @@ by l/2.
 
 With this information it's possible to determine the necessary 2d array coords:
 
-```
+```python
 lattice_spacing = 10
 
 row_count = 17
@@ -189,7 +189,7 @@ The result is the same.
 
 Use the `recurse()` method to generate recursive subgeometries:
 
-```
+```python
 def fractal_visitor(g):
     scale = 0.8
     angle = 50
@@ -215,7 +215,7 @@ Group.rect(0, 0, 100, 100) \
 
 ![Generated SVG](./doc/recurse-single.svg)
 
-```
+```python
 def branching_fractal_visitor(g):
     scale = 0.5
     angle = 10
@@ -247,12 +247,44 @@ Group.rect(0, 0, 100, 100) \
 
 ![Generated SVG](./doc/recurse-tree.svg)
 
+## Combining multiple operations
+```python
+Group() \
+        .add_all(Group.circle(c[0], c[1], 4) for c in Coordinates.hex(17, 17, 10)) \
+        .filter(lambda g: container.contains(g)) \
+        .add(container) \
+        .render(Group.svg_generator("doc/hexagons", fill_background=True))
+
+# Creating shapes from polar coordinates
+flower = Coordinates.polar(300, lambda t: 10 + 150 * abs(math.cos(t * 3))).to_group()
+
+hexagon = Coordinates.polar(6, lambda t: 2).to_group()
+hexagons = Group().add_all(hexagon.to(c[0], c[1]) for c in Coordinates.hex_covering(4 * math.sqrt(4/3), flower))
+
+bars = Group() \
+        .add_all(Group.rect_centered(0, c[1], 320, 20) for c in Coordinates.linear(10, dy=40, centered_on=(0, 0))) \
+        .intersection(flower)
+
+hexagons \
+        .filter(lambda g: flower.covers(g)) \
+        .filter(lambda g: not bars.intersects(g)) \
+        .add(bars) \
+        .add(
+                flower.do_and_add(lambda f: f.buffer(10).add(f.buffer(15)))
+                ) \
+        .border(10, 10) \
+        .render(Group.svg_generator("doc/polar-w-boolean", fill_background=True))
+
+```
+
+![Generated SVG](./doc/polar-w-boolean.svg)
+
 ## Accessing the underlying MultiPolygon
 
 Since the API will never give you everything you could possibly want to do,
 You can just grab the underlying shapely MultiPolygon like so:
 
-```
+```python
 >>> from shart import Group
 >>> my_group = Group.circle(0, 0, 10)
 >>> type(my_group.geoms)

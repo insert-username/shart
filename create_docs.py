@@ -12,7 +12,6 @@ from shart import Coordinates
 
 
 # Single shape
-Group.circle(0, 0, 100).render(Group.svg_generator("doc/circle", fill_background=True))
 
 
 # Multiple shapes are allowed
@@ -115,7 +114,9 @@ hexagons \
         .filter(lambda g: flower.covers(g)) \
         .filter(lambda g: not bars.intersects(g)) \
         .add(bars) \
-        .add(flower) \
+        .add(
+                flower.do_and_add(lambda f: f.buffer(10).add(f.buffer(15)))
+                ) \
         .border(10, 10) \
         .render(Group.svg_generator("doc/polar-w-boolean", fill_background=True))
 

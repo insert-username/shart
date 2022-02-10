@@ -121,6 +121,8 @@ class Group:
     def filter(self, predicate):
         return Group.from_geomarray([ g for g in self.geoms.geoms if predicate(Group.from_geomarray([g])) ])
 
+    def do_and_add(self, modifier):
+        return self.add(modifier(self))
 
     def add(self, geom):
         if isinstance(geom, Group):
@@ -189,14 +191,11 @@ class Group:
 
         return Group(sh.affinity.translate(self.geoms, dx, dy))
 
+    def buffer(self, amount, resolution=16):
+        return Group.from_geomarray([self.geoms.buffer(amount, resolution)])
+
     def translate(self, dx, dy):
         return Group(sh.affinity.translate(self.geoms, dx, dy))
-
-#     def translate_relative(self, dx, dy):
-#         width = self.geoms.bounds[2] - self.geoms.bounds[0]
-#         height = self.geoms.bounds[3] - self.geoms.bounds[1]
-# 
-#         return self.translate(dx * width, dy * height)
 
     def scale(self, x, y=None, origin='center'):
         y = y or x
