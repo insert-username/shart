@@ -19,6 +19,8 @@ infinitely detailed. Same goes for any other curve objects.
 
 # Install
 
+At some point I'll get around to adding this to the PIP repository thing.
+
 Clone repo and run
 ```bash
 ./build-and-install.sh
