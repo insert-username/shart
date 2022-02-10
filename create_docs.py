@@ -96,3 +96,21 @@ Group() \
         .filter(lambda g: container.contains(g)) \
         .add(container) \
         .render(Group.svg_generator("doc/hexagons", fill_background=True))
+
+# Creating shapes from polar coordinates
+flower = Coordinates.polar(300, lambda t: 10 + 150 * abs(math.cos(t * 3))).to_group()
+
+hexagon = Coordinates.polar(6, lambda t: 2).to_group()
+hexagons = Group().add_all(hexagon.to(c[0], c[1]) for c in Coordinates.hex_covering(4 * math.sqrt(4/3), flower))
+
+bars = Group() \
+        .add_all(Group.rect_centered(0, c[1], 320, 20) for c in Coordinates.linear(10, dy=40, centered_on=(0, 0))) \
+        .intersection(flower)
+
+hexagons \
+        .filter(lambda g: flower.covers(g)) \
+        .filter(lambda g: not bars.intersects(g)) \
+        .add(bars) \
+        .add(flower) \
+        .border(10, 10) \
+        .render(Group.svg_generator("doc/polar-w-boolean", fill_background=True))

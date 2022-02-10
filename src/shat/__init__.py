@@ -87,7 +87,7 @@ def flatten_polygons(polygons):
 
     for p in polygons:
         if p.type == "MultiPolygon":
-            result =+ flatten_polygons([ g for g in p.geoms ])
+            result += flatten_polygons([ g for g in p.geoms ])
         else:
             result.append(p)
 
@@ -253,6 +253,15 @@ class Group:
 
         surface.finish()
 
+    def covers(self, group):
+        # returns true if any of this groups geoms cover ALL of
+        # the supplied groups geoms
+        for g in self.geoms.geoms:
+
+            if all(g.covers(h) for h in group.geoms.geoms):
+                return True
+
+        return False
 
     def contains(self, group):
         # returns true if any of this groups geoms contain ALL of
@@ -260,6 +269,16 @@ class Group:
         for g in self.geoms.geoms:
 
             if all(g.covers(h) and not g.crosses(h) for h in group.geoms.geoms):
+                return True
+
+        return False
+
+    def intersects(self, group):
+        # returns true if any of this groups geoms intersect ANY of
+        # the supplied groups geoms
+        for g in self.geoms.geoms:
+
+            if any(g.intersects(h) for h in group.geoms.geoms):
                 return True
 
         return False
@@ -296,7 +315,7 @@ class Group:
 
     @staticmethod
     def from_geomarray(geomarray):
-        return Group(sh.geometry.MultiPolygon(geomarray))
+        return Group(sh.geometry.MultiPolygon(flatten_polygons(geomarray)))
 
 
 class Coordinates:
@@ -311,21 +330,74 @@ class Coordinates:
     def __iter__(self):
         return self.values.__iter__()
 
-    @staticmethod
-    def linear(count, dx=0, dy=0):
-        return Coordinate([ (dx * i, dy * i) for i in range(0, count) ])
+    def to_polygon(self):
+        points = [ c for c in self.values ]
+        return sh.geometry.Polygon(points)
+
+    def to_group(self):
+        return Group.from_geomarray([ self.to_polygon() ])
 
     @staticmethod
-    def hex(rows, columns, lattice_spacing):
+    def linear(count, dx=0, dy=0, centered_on=None):
+        x0 = 0
+        y0 = 0
+
+        if centered_on is not None:
+            x0 = - (dx * (count - 1)) / 2 + centered_on[0]
+            y0 = - (dy * (count - 1)) / 2 + centered_on[1]
+
+        return Coordinates([ (x0 + dx * i, y0 + dy * i) for i in range(0, count) ])
+
+    @staticmethod
+    def hex_covering(lattice_spacing, group):
+        x0 = group.geoms.bounds[0]
+        y0 = group.geoms.bounds[1]
+        x1 = group.geoms.bounds[2]
+        y1 = group.geoms.bounds[3]
+
+        width = x1 - x0
+        height = y1 - y0
+
+        mid_x = x0 + 0.5 * width
+        mid_y = y0 + 0.5 * height
+
+        row_spacing = math.sqrt(3/4) * lattice_spacing
+
+        return Coordinates.hex(
+                math.ceil(width / lattice_spacing),
+                math.ceil(height / row_spacing),
+                lattice_spacing,
+                centered_on=(mid_x, mid_y))
+
+
+    @staticmethod
+    def hex(columns, rows, lattice_spacing, centered_on=None):
+        offs_x = 0
+        offs_y = 0
+
         column_spacing = lattice_spacing
         row_spacing = math.sqrt(3/4) * lattice_spacing
+
+        if centered_on is not None:
+            offs_x = -((columns - 1) * lattice_spacing) / 2 + centered_on[0]
+            offs_y = -((rows - 1) * row_spacing) / 2 + centered_on[1]
 
         for row in range(0, rows):
             col_count = columns if row % 2 == 0 else columns - 1
             col_start = 0 if row % 2 == 0 else lattice_spacing / 2
 
             for col in range(0, col_count):
-                yield((col * column_spacing + col_start, row * row_spacing))
+                yield((col * column_spacing + col_start + offs_x, row * row_spacing + offs_y))
+
+    @staticmethod
+    def polar(steps, fn=lambda theta: 1):
+        result = []
+        for theta in np.linspace(0, math.pi * 2, num=steps, endpoint=False):
+            hypot = fn(theta)
+            result.append(
+                    (hypot * math.cos(theta), hypot * math.sin(theta)))
+
+        return Coordinates(result)
 
 
 if __name__ == "__main__":
