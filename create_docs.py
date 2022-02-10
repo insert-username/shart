@@ -196,3 +196,8 @@ extra_geoms = [ sh.geometry.LineString([ ( 50 / math.sqrt(2), 50 / math.sqrt(2) 
 Group.circle(0, 0, 100) \
     .add(Group.circle(0, 0, 50)) \
     .render(Group.svg_generator("doc/non-group", fill_background=True), geom_modifier=lambda g: itertools.chain(g, extra_geoms))
+
+# Creating geoms from text
+Group.from_text("Hi world", "Linux Libertine O", 50) \
+    .border(10, 10) \
+    .render(Group.svg_generator("doc/text", fill_background=True))

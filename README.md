@@ -309,6 +309,23 @@ Group.circle(0, 0, 100) \
 
 ![Generated SVG](./doc/non-group.svg)
 
+# Creating a Group from text
+```python
+Group.from_text("Hi world", "Linux Libertine O", 50) \
+    .border(10, 10) \
+    .render(Group.svg_generator("doc/text", fill_background=True))
+```
+
+This honestly does not work all that well (boolean ops etc.) and is kind of an afterthought. Text is useful to be able 
+to place for debugging purposes though. Remember that once created, a Group representing text is just another 
+MultiPolygon.
+
+_I can't predict what fonts you have on your machine, but it seems safe to assume "Linux Libertine O" won't be available on 
+Windows ;p_
+
+![Generated SVG](./doc/text.svg)
+
+
 ## Accessing the underlying MultiPolygon
 
 Since the API will never give you everything you could possibly want to do,

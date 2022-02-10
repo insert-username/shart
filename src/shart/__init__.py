@@ -369,6 +369,39 @@ class Group:
     def from_geomarray(geomarray):
         return Group(sh.geometry.MultiPolygon(flatten_polygons(geomarray)))
 
+    @staticmethod
+    def from_text(text, font_face, font_size):
+        surface = cairo.SVGSurface(None, 1, 1)
+        context = cairo.Context(surface)
+
+        context.select_font_face(font_face, cairo.FontSlant.NORMAL, cairo.FontWeight.NORMAL)
+        context.set_font_size(font_size)
+
+        context.move_to(0, 0)
+        context.text_path(text)
+
+        path = context.copy_path_flat()
+
+        polygons = []
+        coord_stack = []
+
+        for p in path:
+            type = p[0]
+            coords = p[1]
+
+            if type == cairo.PathDataType.MOVE_TO:
+                coord_stack.append(coords)
+            elif type == cairo.PathDataType.LINE_TO:
+                coord_stack.append(coords)
+            elif type == cairo.PathDataType.CLOSE_PATH:
+                next_polygon = sh.geometry.Polygon(coord_stack + [ coord_stack[0] ])
+
+                polygons.append(next_polygon)
+                coord_stack.clear()
+
+        surface.finish()
+
+        return Group.from_geomarray(polygons)
 
 class Coordinates:
 
