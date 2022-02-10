@@ -251,13 +251,7 @@ Group.rect(0, 0, 100, 100) \
 
 ## Combining multiple operations
 ```python
-Group() \
-        .add_all(Group.circle(c[0], c[1], 4) for c in Coordinates.hex(17, 17, 10)) \
-        .filter(lambda g: container.contains(g)) \
-        .add(container) \
-        .render(Group.svg_generator("doc/hexagons", fill_background=True))
 
-# Creating shapes from polar coordinates
 flower = Coordinates.polar(300, lambda t: 10 + 150 * abs(math.cos(t * 3))).to_group()
 
 hexagon = Coordinates.polar(6, lambda t: 2).to_group()
