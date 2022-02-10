@@ -6,8 +6,8 @@ import itertools
 
 import numpy as np
 
-from shat import Group
-from shat import Coordinates
+from shart import Group
+from shart import Coordinates
 
 
 

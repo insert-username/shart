@@ -1,4 +1,4 @@
-# SHapely Art Tools
+# SHapely ARt Tools
 
 Fluent api wrapper around shapely geometry library.
 
@@ -56,7 +56,7 @@ Group.circle(0, 0, 100) \
 ## Group is immutable so you can easily perform multiple transformations using the same base group
 
 ```
-from shat import Group
+from shart import Group
 
 outer_circle = Group.circle(0, 0, 100)
 
@@ -127,7 +127,7 @@ roup.rect_centered(0, 0, 10, 10) \
 ### The easy way, using Coordinates
 
 ```
-from shat import Coordinates
+from shart import Coordinates
 
 container = Group.circle(70, 70, 140)
 
@@ -253,7 +253,7 @@ Since the API will never give you everything you could possibly want to do,
 You can just grab the underlying shapely MultiPolygon like so:
 
 ```
->>> from shat import Group
+>>> from shart import Group
 >>> my_group = Group.circle(0, 0, 10)
 >>> type(my_group.geoms)
 <class 'shapely.geometry.multipolygon.MultiPolygon'>
