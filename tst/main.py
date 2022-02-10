@@ -34,7 +34,19 @@ class TestMain(unittest.TestCase):
                 anchored)
 
 
+    def test_recurse(self):
+        geom = shat.Group.rect(0, 0, 10, 10)
 
+        #recursed = geom.recurse(lambda g: [ g.translate(10, 10), g.translate(10, -10) ], 1)
+
+        #self.assertEqual(3, len(recursed.geoms.geoms))
+
+        recursed = geom.recurse(lambda g: [
+            g.scale(0.5, 0.5).translate(10, 10),
+            g.scale(0.5, 0.5).translate(10, -10) ],
+            2)
+
+        #self.assertEqual(7, len(recursed.geoms.geoms))
 
 
 

@@ -192,9 +192,22 @@ class Group:
     def translate(self, dx, dy):
         return Group(sh.affinity.translate(self.geoms, dx, dy))
 
-    def rotate(self, angle, use_radians=True):
-        return Group(sh.affinity.rotate(self.geoms, angle, use_radians=use_radians))
+#     def translate_relative(self, dx, dy):
+#         width = self.geoms.bounds[2] - self.geoms.bounds[0]
+#         height = self.geoms.bounds[3] - self.geoms.bounds[1]
+# 
+#         return self.translate(dx * width, dy * height)
 
+    def scale(self, x, y=None, origin='center'):
+        y = y or x
+
+        return Group(sh.affinity.scale(self.geoms, xfact=x, yfact=y, origin=origin))
+
+    def rotate(self, angle, use_radians=True, origin=None):
+        if origin is None:
+            origin = 'centroid'
+
+        return Group(sh.affinity.rotate(self.geoms, angle, use_radians=use_radians, origin=origin))
 
     def spin(self, center_x, center_y, count, geom_centroid=None, should_rotate=False):
 
@@ -218,6 +231,27 @@ class Group:
             result = result.add(new_geom)
 
         return result
+
+    def recurse(self, modifier, depth):
+        if depth == 0:
+            return self
+
+        result = []
+        self._recurse(modifier, depth, result)
+
+        return self.add_all(result)
+
+    def _recurse(self, modifier, depth, result):
+        if depth == 0:
+            return
+
+        subgroups = modifier(self)
+
+        result += subgroups
+
+        for g in subgroups:
+            g._recurse(modifier, depth - 1, result)
+
 
     def foreach_modify(self, modifier):
         return Group.from_geomarray([ modifier(g) for g in self.geoms.geoms ])

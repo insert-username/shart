@@ -4,8 +4,12 @@ import math
 
 import itertools
 
+import numpy as np
+
 from shat import Group
 from shat import Coordinates
+
+
 
 # Single shape
 Group.circle(0, 0, 100).render(Group.svg_generator("doc/circle", fill_background=True))
@@ -114,3 +118,54 @@ hexagons \
         .add(flower) \
         .border(10, 10) \
         .render(Group.svg_generator("doc/polar-w-boolean", fill_background=True))
+
+
+# Hey dawg I heard you like hey dawg I heard you like hey dawg I heard you like...
+
+def fractal_visitor(g):
+    scale = 0.8
+    angle = 50
+
+    pa = g.geoms.geoms[0].boundary.coords[-2]
+    pb = g.geoms.geoms[0].boundary.coords[1]
+
+    pab = tuple(np.subtract(pb, pa))
+
+    subgroup = g.translate(pab[0], pab[1]) \
+            .scale(scale, origin=pb) \
+            .rotate(angle, origin=pb, use_radians=False)
+
+
+    return [ subgroup ]
+
+Group.rect(0, 0, 100, 100) \
+    .recurse(fractal_visitor, 60) \
+    .border(20, 20) \
+    .render(Group.svg_generator("doc/recurse-single", fill_background=True))
+
+def branching_fractal_visitor(g):
+    scale = 0.5
+    angle = 10
+
+    top_right = g.geoms.geoms[0].boundary.coords[0]
+    top_left = g.geoms.geoms[0].boundary.coords[-2]
+    bottom_right = g.geoms.geoms[0].boundary.coords[1]
+    bottom_left = g.geoms.geoms[0].boundary.coords[2]
+
+    tl_br = tuple(np.subtract(bottom_right, top_left))
+    tr_bl = tuple(np.subtract(bottom_left, top_right))
+
+    subgroup1 = g.translate(tl_br[0], tl_br[1]) \
+            .scale(scale, origin=bottom_right) \
+            .rotate(angle, origin=bottom_right, use_radians=False)
+
+    subgroup2 = g.translate(tr_bl[0], tr_bl[1]) \
+            .scale(scale, origin=bottom_left) \
+            .rotate(-angle, origin=bottom_left, use_radians=False)
+
+    return [ subgroup1,  subgroup2 ]
+
+Group.rect(0, 0, 100, 100) \
+    .recurse(branching_fractal_visitor, 6) \
+    .border(20, 20) \
+    .render(Group.svg_generator("doc/recurse-tree", fill_background=True))
