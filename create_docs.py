@@ -8,12 +8,12 @@ import numpy as np
 
 from shart import Group
 from shart import Coordinates
+from shart import BoxFace, FingerGenerator
 
 import shapely as sh
 import shapely.geometry
 
 # Single shape
-
 
 # Multiple shapes are allowed
 Group.circle(0, 0, 100) \
@@ -173,21 +173,46 @@ Group.rect(0, 0, 100, 100) \
     .border(20, 20) \
     .render(Group.svg_generator("doc/recurse-tree", fill_background=True))
 
-from shart import BoxFace, FingerGenerator
 
-fgen_male = FingerGenerator(100 / 4.5, 0.5, True, 8, kerf=3, clearance=5)
-fgen_female = FingerGenerator(100 / 4.5, 0.5, False, 8, kerf=3, clearance=5)
+
+
+def create_for_phase(phase):
+    bf = BoxFace(sh.geometry.box(0, 0, 100, 20))
+    bf.assign_edge(2, FingerGenerator.create_for_length(100, 5, True, 6.5, 1, 0.1, duty=0.5, phase=phase))
+    bf.assign_edge(0, FingerGenerator.create_for_length(100, 5, False, 6.5, 1, 0.1, duty=0.5, phase=phase))
+
+    return bf.generate_group()\
+        .union()\
+        .add(Group.from_text(f"Phase: {round(phase, 4)}", "Linux Libertine O", 10).translate(10, 15))
+
+
+Group() \
+    .add_all([create_for_phase(p).translate(0, i * 40) for i, p in enumerate(np.linspace(0, 1, 10, endpoint=True))]) \
+    .border(10, 10) \
+    .render(Group.svg_generator("doc/finger-joint-phases", fill_background=True))
+
+fgen_male = FingerGenerator.create_for_length(100, 5, True, 6.5, 1, 0.1)
+fgen_female = FingerGenerator.create_for_length(100, 5, False, 6.5, 1, 0.1)
 
 bf = BoxFace(sh.geometry.box(0, 0, 100, 100))
-bf.assign_edge(0, fgen_male)
-bf.assign_edge(1, fgen_female)
-bf.assign_edge(2, fgen_female)
-bf.assign_edge(3, fgen_male)
+
+# bottom
+bf.assign_edge(2, fgen_male)
+
+# top
+bf.assign_edge(0, fgen_female)
+
+# right
+bf.assign_edge(3, fgen_female)
+
+# left
+bf.assign_edge(1, fgen_male)
 
 bf.generate_group() \
     .union() \
-    .do_and_add(lambda g: g.translate(111, 0)) \
-    .do_and_add(lambda g: g.translate(0, 111)) \
+    .do_and_add(lambda g: g.translate(121, 0)) \
+    .do_and_add(lambda g: g.translate(0, 121)) \
+    .add(fgen_male.get_slots(((50, 0), (50, 100))).do(lambda s: s.translate(-s.bounds_width / 2, 0))) \
     .border(20, 20) \
     .render(Group.svg_generator("doc/finger-joint", fill_background=True))
 

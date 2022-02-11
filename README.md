@@ -277,27 +277,41 @@ hexagons \
 
 ## WIP: finger joint boxes
 
-```python
-from shart import BoxFace, FingerGenerator
+You can cut finger joints as well as slots (needs some real world testing :) )
 
-fgen_male = FingerGenerator(100 / 4.5, 0.5, True, 8, kerf=3, clearance=5)
-fgen_female = FingerGenerator(100 / 4.5, 0.5, False, 8, kerf=3, clearance=5)
+```python
 
 bf = BoxFace(sh.geometry.box(0, 0, 100, 100))
-bf.assign_edge(0, fgen_male)
-bf.assign_edge(1, fgen_female)
-bf.assign_edge(2, fgen_female)
-bf.assign_edge(3, fgen_male)
+
+# bottom
+bf.assign_edge(2, fgen_male)
+
+# top
+bf.assign_edge(0, fgen_female)
+
+# right
+bf.assign_edge(3, fgen_female)
+
+# left
+bf.assign_edge(1, fgen_male)
 
 bf.generate_group() \
     .union() \
-    .do_and_add(lambda g: g.translate(111, 0)) \
-    .do_and_add(lambda g: g.translate(0, 111)) \
+    .do_and_add(lambda g: g.translate(121, 0)) \
+    .do_and_add(lambda g: g.translate(0, 121)) \
+    .add(fgen_male.get_slots(((50, 0), (50, 100))).do(lambda s: s.translate(-s.bounds_width / 2, 0))) \
     .border(20, 20) \
     .render(Group.svg_generator("doc/finger-joint", fill_background=True))
 ```
 
 ![Generated SVG](./doc/finger-joint.svg)
+
+## Finger joint Phases
+It is possible to change the duty cycle (finger on/off) as well as phase.
+By default the phase is 0.5 as this gives a pleasing appearance. Below are male
+and female profiles for various phases.
+
+![Generated SVG](./doc/finger-joint-phases.svg)
 
 # Rendering geometries not based on a group
 ```python

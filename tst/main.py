@@ -33,6 +33,11 @@ class TestMain(unittest.TestCase):
                 sh.geometry.box(0, 0, 4, 3),
                 anchored)
 
+    def test_bounds_width(self):
+        self.assertEqual(2, shart.Group.rect_centered(0, 0, 2, 3).bounds_width)
+
+    def test_bounds_height(self):
+        self.assertEqual(3, shart.Group.rect_centered(0, 0, 2, 3).bounds_height)
 
     def test_recurse(self):
         geom = shart.Group.rect(0, 0, 10, 10)
