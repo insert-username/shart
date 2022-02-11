@@ -286,6 +286,9 @@ You can cut finger joints as well as slots (needs some real world testing :) )
 
 ```python
 
+fgen_male = FingerGenerator.create_for_length(100, 5, True, 6.5, 1, 0.1)
+fgen_female = FingerGenerator.create_for_length(100, 5, False, 6.5, 1, 0.1)
+
 bf = BoxFace(sh.geometry.box(0, 0, 100, 100))
 
 # bottom
