@@ -384,6 +384,17 @@ class Group:
         return Group(sh.geometry.MultiPolygon(flatten_polygons(geomarray)))
 
     @staticmethod
+    def arrange(groups, clearance):
+        x_current = 0
+
+        result = Group()
+        for g in groups:
+            result = result.add(g.anchor().translate(x_current, 0))
+            x_current += g.bounds_width + clearance
+
+        return result
+
+    @staticmethod
     def from_text(text, font_face, font_size):
         surface = cairo.SVGSurface(None, 1, 1)
         context = cairo.Context(surface)
