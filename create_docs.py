@@ -122,27 +122,29 @@ hexagons \
         .border(10, 10) \
         .render(Group.svg_generator("doc/polar-w-boolean", fill_background=True))
 
-
 # Hey dawg I heard you like hey dawg I heard you like hey dawg I heard you like...
 
-def fractal_visitor(g):
-    scale = 0.8
-    angle = 50
+def get_fractal_visitor(i0, i1, angle=45, scale=0.8):
 
-    pa = g.geoms.geoms[0].boundary.coords[-2]
-    pb = g.geoms.geoms[0].boundary.coords[1]
+    def modifier(g):
+        pa = g.geoms.geoms[0].boundary.coords[i0]
+        pb = g.geoms.geoms[0].boundary.coords[i1]
 
-    pab = tuple(np.subtract(pb, pa))
+        pab = tuple(np.subtract(pb, pa))
 
-    subgroup = g.translate(pab[0], pab[1]) \
-            .scale(scale, origin=pb) \
-            .rotate(angle, origin=pb, use_radians=False)
+        subgroup = g.translate(pab[0], pab[1]) \
+                .scale(scale, origin=pb) \
+                .rotate(angle, origin=pb, use_radians=False)
 
 
-    return [ subgroup ]
+        return [ subgroup ]
+
+    return modifier
 
 Group.rect(0, 0, 100, 100) \
-    .recurse(fractal_visitor, 60) \
+    .recurse(get_fractal_visitor(-2, 1, angle=38, scale=0.8), 15) \
+    .map_subgroups(lambda g: g.recurse(get_fractal_visitor(1, 3, angle=45, scale=0.6), 4)) \
+    .map_subgroups(lambda g: g.recurse(get_fractal_visitor(-1, 2, angle=45, scale=0.5), 4)) \
     .border(20, 20) \
     .render(Group.svg_generator("doc/recurse-single", fill_background=True))
 
@@ -226,3 +228,5 @@ Group.circle(0, 0, 100) \
 Group.from_text("Hi world", "Linux Libertine O", 50) \
     .border(10, 10) \
     .render(Group.svg_generator("doc/text", fill_background=True))
+
+"""

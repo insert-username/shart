@@ -148,6 +148,9 @@ class Group:
     def do(self, modifier):
         return modifier(self)
 
+    def map_subgroups(self, modifier):
+        return Group().add_all([ modifier(Group.from_geomarray([g])) for g in self.geoms.geoms ])
+
     def add(self, geom):
         if isinstance(geom, Group):
             return self.add(geom.geoms)
@@ -276,6 +279,7 @@ class Group:
             g._recurse(modifier, depth - 1, result)
 
 
+    # todo: deprecated
     def foreach_modify(self, modifier):
         return Group.from_geomarray([ modifier(g) for g in self.geoms.geoms ])
 
