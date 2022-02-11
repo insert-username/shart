@@ -228,5 +228,3 @@ Group.circle(0, 0, 100) \
 Group.from_text("Hi world", "Linux Libertine O", 50) \
     .border(10, 10) \
     .render(Group.svg_generator("doc/text", fill_background=True))
-
-"""
