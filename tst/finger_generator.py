@@ -10,12 +10,13 @@ import numpy as np
 import numpy.testing
 
 import shart
+from shart.box import *
 
 
 class TestMain(unittest.TestCase):
 
     def test_no_phase(self):
-        ic = shart.IntervalCalculator(1, 0.5, 0)
+        ic = IntervalCalculator(1, 0.5, 0)
 
         intervals = ic.get_intervals(3)
 
@@ -26,7 +27,7 @@ class TestMain(unittest.TestCase):
         ], intervals)
 
     def test_duty(self):
-        ic = shart.IntervalCalculator(1, 0.3, 0)
+        ic = IntervalCalculator(1, 0.3, 0)
 
         intervals = ic.get_intervals(3)
 
@@ -37,7 +38,7 @@ class TestMain(unittest.TestCase):
         ], intervals)
 
     def test_phase_1(self):
-        ic = shart.IntervalCalculator(1, 0.5, 0.25)
+        ic = IntervalCalculator(1, 0.5, 0.25)
 
         intervals = ic.get_intervals(3)
 
@@ -49,7 +50,7 @@ class TestMain(unittest.TestCase):
         ], intervals)
 
     def test_phase_2(self):
-        ic = shart.IntervalCalculator(1, 0.5, 0.3)
+        ic = IntervalCalculator(1, 0.5, 0.3)
 
         intervals = ic.get_intervals(3)
 

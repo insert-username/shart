@@ -58,7 +58,7 @@ Group.circle(0, 0, 100) \
 ## Group is immutable so you can easily perform multiple transformations using the same base group
 
 ```python
-from shart import Group
+from shart.group import Group
 
 outer_circle = Group.circle(0, 0, 100)
 
@@ -116,7 +116,7 @@ Group.rect_centered(50, 0, 10, 10) \
 Pass in a lambda which applies the desired transformation for a given increment
 
 ```python
-roup.rect_centered(0, 0, 10, 10) \
+Group.rect_centered(0, 0, 10, 10) \
        .linarray(10,
                lambda i, g: g.to(i * 20, 0).rotate(i * 10, use_radians=False)) \
        .render(Group.svg_generator("doc/rects-linarray"))
@@ -129,7 +129,7 @@ roup.rect_centered(0, 0, 10, 10) \
 ### The easy way, using Coordinates
 
 ```python
-from shart import Coordinates
+from shart.coordinates import Coordinates
 
 container = Group.circle(70, 70, 140)
 
@@ -285,6 +285,7 @@ hexagons \
 You can cut finger joints as well as slots (needs some real world testing :) )
 
 ```python
+from shart.box import *
 
 fgen_male = FingerGenerator.create_for_length(100, 5, True, 6.5, 1, 0.1)
 fgen_female = FingerGenerator.create_for_length(100, 5, False, 6.5, 1, 0.1)
@@ -354,7 +355,7 @@ Since the API will never give you everything you could possibly want to do,
 You can just grab the underlying shapely MultiPolygon like so:
 
 ```python
->>> from shart import Group
+>>> from shart.group import Group
 >>> my_group = Group.circle(0, 0, 10)
 >>> type(my_group.geoms)
 <class 'shapely.geometry.multipolygon.MultiPolygon'>

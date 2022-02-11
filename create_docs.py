@@ -6,9 +6,9 @@ import itertools
 
 import numpy as np
 
-from shart import Group
-from shart import Coordinates
-from shart import BoxFace, FingerGenerator
+from shart.group import Group
+from shart.coordinates import Coordinates
+from shart.box import BoxFace, FingerGenerator
 
 import shapely as sh
 import shapely.geometry
