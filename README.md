@@ -40,7 +40,9 @@ a cairo surface from which a render context can be created. Use your own
 lambda for alternative outputs.
 
 ```python
-Group.circle(0, 0, 100).render(Group.svg_generator("doc/circle"))
+from shart.renderers import GroupRenderer
+
+Group.circle(0, 0, 100).do(lambda g: GroupRenderer.render_svg(g, "doc/circle", fill_background=True))
 ```
 
 ![Generated SVG](./doc/circle.svg)
@@ -50,7 +52,7 @@ Group.circle(0, 0, 100).render(Group.svg_generator("doc/circle"))
 ```python
 Group.circle(0, 0, 100) \
     .add(Group.circle(0, 0, 50)) \
-    .render(Group.svg_generator("doc/circle-add"))
+    .do(lambda g: GroupRenderer.render_svg(g, "doc/circle-add", fill_background=True))
 ```
 
 ![Generated SVG](./doc/circle-add.svg)
@@ -67,7 +69,7 @@ inner_circle = Group.circle(0, 0, 20)
 outer_circle \
     .add(inner_circle.to(50, 0)) \
     .add(inner_circle.to(-50, 0)) \
-    .render(Group.svg_generator("doc/circles"))
+    .do(lambda g: GroupRenderer.render_svg(g, "doc/circles", fill_background=True))
 
 ```
 
@@ -80,7 +82,7 @@ outer_circle \
     .add(inner_circle.to(50, 0)) \
     .add(inner_circle.to(-50, 0)) \
     .union() \
-    .render(Group.svg_generator("doc/circles-union"))
+    .do(lambda g: GroupRenderer.render_svg(g, "doc/circles-union", fill_background=True))
 ```
 
 ![Generated SVG](./doc/circles-union.svg)
@@ -96,7 +98,7 @@ spin_rects \
         .spin(0, 0, 20, should_rotate=True) \
         .difference(center_rect) \
         .union() \
-        .render(Group.svg_generator("doc/boolean"))
+        .do(lambda g: GroupRenderer.render_svg(g, "doc/boolean", fill_background=True))
 ```
 
 ![Generated SVG](./doc/boolean.svg)
@@ -106,7 +108,7 @@ spin_rects \
 ```python
 Group.rect_centered(50, 0, 10, 10) \
     .spin(0, 0, 10, should_rotate=True) \
-    .render(Group.svg_generator("doc/rects"))
+    .do(lambda g: GroupRenderer.render_svg(g, "doc/rects", fill_background=True))
 ```
 
 ![Generated SVG](./doc/rects.svg)
@@ -119,7 +121,7 @@ Pass in a lambda which applies the desired transformation for a given increment
 Group.rect_centered(0, 0, 10, 10) \
        .linarray(10,
                lambda i, g: g.to(i * 20, 0).rotate(i * 10, use_radians=False)) \
-       .render(Group.svg_generator("doc/rects-linarray"))
+        .do(lambda g: GroupRenderer.render_svg(g, "doc/rects-linarray", fill_background=True))
 ```
 
 ![Generated SVG](./doc/rects-linarray.svg)
@@ -137,7 +139,7 @@ Group() \
         .add_all(Group.circle(c[0], c[1], 4) for c in Coordinates.hex(17, 17, 10)) \
         .filter(lambda g: container.contains(g)) \
         .add(container) \
-        .render(Group.svg_generator("doc/hexagons", fill_background=True))
+        .do(lambda g: GroupRenderer.render_svg(g, "doc/hexagons", fill_background=True))
 ```
 
 ![Generated SVG](./doc/hexagons.svg)
@@ -177,7 +179,7 @@ container = Group.circle(70, 70, 140)
 
 lattice.filter(lambda g: container.contains(g)) \
     .add(container) \
-    .render(Group.svg_generator("doc/hexagons-hard", fill_background=True))
+    .do(lambda g: GroupRenderer.render_svg(g, "doc/hexagons-hard", fill_background=True))
 
 ```
 
@@ -216,7 +218,7 @@ Group.rect(0, 0, 100, 100) \
     .map_subgroups(lambda g: g.recurse(get_fractal_visitor(1, 3, angle=45, scale=0.6), 4)) \
     .map_subgroups(lambda g: g.recurse(get_fractal_visitor(-1, 2, angle=45, scale=0.5), 4)) \
     .border(20, 20) \
-    .render(Group.svg_generator("doc/recurse-single", fill_background=True))
+    .do(lambda g: GroupRenderer.render_svg(g, "doc/recurse-single", fill_background=True))
 
 ```
 
@@ -248,7 +250,7 @@ def branching_fractal_visitor(g):
 Group.rect(0, 0, 100, 100) \
     .recurse(branching_fractal_visitor, 6) \
     .border(20, 20) \
-    .render(Group.svg_generator("doc/recurse-tree", fill_background=True))
+    .do(lambda g: GroupRenderer.render_svg(g, "doc/recurse-tree", fill_background=True))
 
 ```
 
@@ -274,7 +276,7 @@ hexagons \
                 flower.do_and_add(lambda f: f.buffer(10).add(f.buffer(15)))
                 ) \
         .border(10, 10) \
-        .render(Group.svg_generator("doc/polar-w-boolean", fill_background=True))
+        .do(lambda g: GroupRenderer.render_svg(g, "doc/polar-w-boolean", fill_background=True))
 
 ```
 
@@ -310,7 +312,7 @@ bf.generate_group() \
     .do_and_add(lambda g: g.translate(0, 121)) \
     .add(fgen_male.get_slots(((50, 0), (50, 100))).do(lambda s: s.translate(-s.bounds_width / 2, 0))) \
     .border(20, 20) \
-    .render(Group.svg_generator("doc/finger-joint", fill_background=True))
+    .do(lambda g: GroupRenderer.render_svg(g, "doc/finger-joint", fill_background=True))
 ```
 
 ![Generated SVG](./doc/finger-joint.svg)
@@ -327,7 +329,12 @@ and female profiles for various phases.
 extra_geoms = [ sh.geometry.LineString([ ( 50 / math.sqrt(2), 50 / math.sqrt(2) ), ( 100, 100 ) ]) ]
 Group.circle(0, 0, 100) \
     .add(Group.circle(0, 0, 50)) \
-    .render(Group.svg_generator("doc/non-group", fill_background=True), geom_modifier=lambda g: itertools.chain(g, extra_geoms))
+    .do(lambda g:
+        GroupRenderer.render_svg(
+            g,
+            "doc/non-group",
+            fill_background=True,
+            post_render=lambda geom_r, prim_r: [geom_r.render(eg, prim_r) for eg in extra_geoms]))
 ```
 
 ![Generated SVG](./doc/non-group.svg)
@@ -336,7 +343,7 @@ Group.circle(0, 0, 100) \
 ```python
 Group.from_text("Hi world", "Linux Libertine O", 50) \
     .border(10, 10) \
-    .render(Group.svg_generator("doc/text", fill_background=True))
+    .do(lambda g: GroupRenderer.render_svg(g, "doc/text", fill_background=True))
 ```
 
 This honestly does not work all that well (boolean ops etc.) and is kind of an afterthought. Text is useful to be able 

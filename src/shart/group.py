@@ -19,6 +19,14 @@ class Group:
             raise ValueError()
 
     @property
+    def bounds_x(self):
+        return self.geoms.bounds[0]
+
+    @property
+    def bounds_y(self):
+        return self.geoms.bounds[1]
+
+    @property
     def bounds_width(self):
         return self.geoms.bounds[2] - self.geoms.bounds[0]
 
@@ -190,31 +198,6 @@ class Group:
                 circle
             ]))
 
-    def render(self, surface_generator, geom_modifier=lambda g: g):
-
-        # most rendering surfaces require 0, 0 as
-        # an origin point so reset to origin
-        render_offsets = (
-            -self.geoms.bounds[0],
-            -self.geoms.bounds[1]
-        )
-
-        surface = surface_generator(self.geoms.bounds[2] - self.geoms.bounds[0], self.geoms.bounds[3] - self.geoms.bounds[1])
-
-        c = cairo.Context(surface)
-        c.set_line_width(1)
-        c.set_line_join(cairo.LINE_JOIN_MITER)
-        #c.select_font_face("Linux Libertine O", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
-        #c.set_font_size(6)
-        c.set_source_rgb(0, 0, 0)
-
-        to_render = geom_modifier(self.geoms.geoms)
-
-        for g in to_render:
-            draw_geom(c, g, dx=render_offsets[0], dy=render_offsets[1])
-
-        surface.finish()
-
     def covers(self, group):
         # returns true if any of this groups geoms cover ALL of
         # the supplied groups geoms
@@ -254,25 +237,6 @@ class Group:
     @staticmethod
     def rect_centered(x, y, width, height):
         return Group.rect(x - width / 2, y - height / 2, width, height)
-
-    @staticmethod
-    def svg_generator(name, append_dimension_info=False, fill_background=False):
-        name_modifier = lambda width, height: f"{name}_{width}_{height}.svg" if append_dimension_info else f"{name}.svg"
-
-        def prepare_svg_surface(width, height):
-            output_name = f"{name}_{width}_{height}.svg" if append_dimension_info else f"{name}.svg"
-
-            result = cairo.SVGSurface(output_name, width, height)
-
-            if fill_background:
-                c = cairo.Context(result)
-                c.set_source_rgb(1, 1, 1)
-                c.rectangle(0, 0, width, height)
-                c.fill()
-
-            return result
-
-        return prepare_svg_surface
 
     @staticmethod
     def from_geomarray(geomarray):

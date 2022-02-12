@@ -9,16 +9,20 @@ import numpy as np
 from shart.group import Group
 from shart.coordinates import Coordinates
 from shart.box import BoxFace, FingerGenerator
+from shart.renderers import GroupRenderer
 
 import shapely as sh
 import shapely.geometry
 
 # Single shape
+Group.circle(0, 0, 100) \
+    .do(lambda g: GroupRenderer.render_svg(g, "doc/circle", fill_background=True))
+
 
 # Multiple shapes are allowed
 Group.circle(0, 0, 100) \
     .add(Group.circle(0, 0, 50)) \
-    .render(Group.svg_generator("doc/circle-add", fill_background=True))
+    .do(lambda g: GroupRenderer.render_svg(g, "doc/circle-add", fill_background=True))
 
 
 # Group is immutable so you can easily perform multiple transformations using the same base group
@@ -29,7 +33,7 @@ inner_circle = Group.circle(0, 0, 20)
 outer_circle \
     .add(inner_circle.to(50, 0)) \
     .add(inner_circle.to(-50, 0)) \
-    .render(Group.svg_generator("doc/circles", fill_background=True))
+    .do(lambda g: GroupRenderer.render_svg(g, "doc/circles", fill_background=True))
 
 
 # Using union()
@@ -37,7 +41,7 @@ outer_circle \
     .add(inner_circle.to(50, 0)) \
     .add(inner_circle.to(-50, 0)) \
     .union() \
-    .render(Group.svg_generator("doc/circles-union", fill_background=True))
+    .do(lambda g: GroupRenderer.render_svg(g, "doc/circles-union", fill_background=True))
 
 
 # Boolean operations
@@ -50,20 +54,20 @@ spin_rects \
         .spin(0, 0, 20, should_rotate=True) \
         .difference(center_rect) \
         .union() \
-        .render(Group.svg_generator("doc/boolean", fill_background=True))
+        .do(lambda g: GroupRenderer.render_svg(g, "doc/boolean", fill_background=True))
 
 
 # Using spin()
 Group.rect_centered(50, 0, 10, 10) \
     .spin(0, 0, 10, should_rotate=True) \
-    .render(Group.svg_generator("doc/rects", fill_background=True))
+        .do(lambda g: GroupRenderer.render_svg(g, "doc/rects", fill_background=True))
 
 
 # Using linarray()
 Group.rect_centered(0, 0, 10, 10) \
        .linarray(10,
                lambda i, g: g.to(i * 20, 0).rotate(i * 10, use_radians=False)) \
-       .render(Group.svg_generator("doc/rects-linarray", fill_background=True))
+       .do(lambda g: GroupRenderer.render_svg(g, "doc/rects-linarray", fill_background=True))
 
 
 # Creating hexagonal tiling
@@ -92,14 +96,14 @@ container = Group.circle(70, 70, 140)
 
 lattice.filter(lambda g: container.contains(g)) \
     .add(container) \
-    .render(Group.svg_generator("doc/hexagons-hard", fill_background=True))
+    .do(lambda g: GroupRenderer.render_svg(g, "doc/hexagons-hard", fill_background=True))
 
 # Creating hexagonal tiling, the easy way
 Group() \
         .add_all(Group.circle(c[0], c[1], 4) for c in Coordinates.hex(17, 17, 10)) \
         .filter(lambda g: container.contains(g)) \
         .add(container) \
-        .render(Group.svg_generator("doc/hexagons", fill_background=True))
+        .do(lambda g: GroupRenderer.render_svg(g, "doc/hexagons", fill_background=True))
 
 # Creating shapes from polar coordinates
 flower = Coordinates.polar(300, lambda t: 10 + 150 * abs(math.cos(t * 3))).to_group()
@@ -120,7 +124,8 @@ hexagons \
                 flower.do_and_add(lambda f: f.buffer(10).add(f.buffer(15)))
                 ) \
         .border(10, 10) \
-        .render(Group.svg_generator("doc/polar-w-boolean", fill_background=True))
+        .do(lambda g: GroupRenderer.render_svg(g, "doc/polar-w-boolean", fill_background=True))
+
 
 # Hey dawg I heard you like hey dawg I heard you like hey dawg I heard you like...
 
@@ -146,7 +151,7 @@ Group.rect(0, 0, 100, 100) \
     .map_subgroups(lambda g: g.recurse(get_fractal_visitor(1, 3, angle=45, scale=0.6), 4)) \
     .map_subgroups(lambda g: g.recurse(get_fractal_visitor(-1, 2, angle=45, scale=0.5), 4)) \
     .border(20, 20) \
-    .render(Group.svg_generator("doc/recurse-single", fill_background=True))
+    .do(lambda g: GroupRenderer.render_svg(g, "doc/recurse-single", fill_background=True))
 
 def branching_fractal_visitor(g):
     scale = 0.5
@@ -170,10 +175,11 @@ def branching_fractal_visitor(g):
 
     return [ subgroup1,  subgroup2 ]
 
+
 Group.rect(0, 0, 100, 100) \
     .recurse(branching_fractal_visitor, 6) \
     .border(20, 20) \
-    .render(Group.svg_generator("doc/recurse-tree", fill_background=True))
+    .do(lambda g: GroupRenderer.render_svg(g, "doc/recurse-tree", fill_background=True))
 
 
 
@@ -191,7 +197,7 @@ def create_for_phase(phase):
 Group() \
     .add_all([create_for_phase(p).translate(0, i * 40) for i, p in enumerate(np.linspace(0, 1, 10, endpoint=True))]) \
     .border(10, 10) \
-    .render(Group.svg_generator("doc/finger-joint-phases", fill_background=True))
+    .do(lambda g: GroupRenderer.render_svg(g, "doc/finger-joint-phases", fill_background=True))
 
 fgen_male = FingerGenerator.create_for_length(100, 5, True, 6.5, 1, 0.1)
 fgen_female = FingerGenerator.create_for_length(100, 5, False, 6.5, 1, 0.1)
@@ -216,15 +222,20 @@ bf.generate_group() \
     .do_and_add(lambda g: g.translate(0, 121)) \
     .add(fgen_male.get_slots(((50, 0), (50, 100))).do(lambda s: s.translate(-s.bounds_width / 2, 0))) \
     .border(20, 20) \
-    .render(Group.svg_generator("doc/finger-joint", fill_background=True))
+    .do(lambda g: GroupRenderer.render_svg(g, "doc/finger-joint", fill_background=True))
 
 # Rendering non-group geoms
 extra_geoms = [ sh.geometry.LineString([ ( 50 / math.sqrt(2), 50 / math.sqrt(2) ), ( 100, 100 ) ]) ]
 Group.circle(0, 0, 100) \
     .add(Group.circle(0, 0, 50)) \
-    .render(Group.svg_generator("doc/non-group", fill_background=True), geom_modifier=lambda g: itertools.chain(g, extra_geoms))
+    .do(lambda g:
+        GroupRenderer.render_svg(
+            g,
+            "doc/non-group",
+            fill_background=True,
+            post_render=lambda geom_r, prim_r: [geom_r.render(eg, prim_r) for eg in extra_geoms]))
 
 # Creating geoms from text
 Group.from_text("Hi world", "Linux Libertine O", 50) \
     .border(10, 10) \
-    .render(Group.svg_generator("doc/text", fill_background=True))
+    .do(lambda g: GroupRenderer.render_svg(g, "doc/text", fill_background=True))

@@ -7,37 +7,6 @@ import numpy as np
 import math
 
 
-def draw_geom(c, geom, fill=False, dx=0, dy=0):
-    if geom.type == "Polygon":
-        _draw_line(c, geom.exterior.coords, fill, dx, dy)
-    elif geom.type == "LineString":
-        _draw_line(c, geom.coords, fill, dx, dy)
-    elif geom.type == "MultiLineString":
-        for g in geom.geoms:
-            draw_geom(c, g, fill, dx, dy)
-    else:
-        raise ValueError(f"Unsupported geom type: {geom.type}")
-
-
-def _draw_line(c, line_points, fill=False, dx=0, dy=0):
-    if len(line_points) == 0:
-        return
-
-    c.new_path()
-
-    c.move_to(line_points[0][0] + dx, line_points[0][1] + dy)
-
-    for i, p in enumerate(line_points):
-        c.line_to(p[0] + dx, p[1] + dy)
-
-    if fill:
-        c.fill()
-    else:
-        c.stroke()
-
-    c.close_path()
-
-
 def create_border_box(geom, border_thickness, border_radius):
     b = geom.bounds
 
