@@ -40,9 +40,10 @@ a cairo surface from which a render context can be created. Use your own
 lambda for alternative outputs.
 
 ```python
-from shart.renderers import GroupRenderer
+from shart.group import Group
+from shart.renderers import RenderBuilder
 
-Group.circle(0, 0, 100).do(lambda g: GroupRenderer.render_svg(g, "doc/circle", fill_background=True))
+Group.circle(0, 0, 100).do(RenderBuilder().svg().file("doc/circle"))
 ```
 
 ![Generated SVG](./doc/circle.svg)
@@ -50,9 +51,12 @@ Group.circle(0, 0, 100).do(lambda g: GroupRenderer.render_svg(g, "doc/circle", f
 ## Multiple shapes are allowed
 
 ```python
-Group.circle(0, 0, 100) \
-    .add(Group.circle(0, 0, 50)) \
-    .do(lambda g: GroupRenderer.render_svg(g, "doc/circle-add", fill_background=True))
+from shart.group import Group
+from shart.renderers import RenderBuilder
+
+Group.circle(0, 0, 100)
+    .add(Group.circle(0, 0, 50))
+    .do(RenderBuilder().svg().file("doc/circle-add"))
 ```
 
 ![Generated SVG](./doc/circle-add.svg)
@@ -61,15 +65,16 @@ Group.circle(0, 0, 100) \
 
 ```python
 from shart.group import Group
+from shart.renderers import RenderBuilder
 
 outer_circle = Group.circle(0, 0, 100)
 
 inner_circle = Group.circle(0, 0, 20)
 
-outer_circle \
-    .add(inner_circle.to(50, 0)) \
-    .add(inner_circle.to(-50, 0)) \
-    .do(lambda g: GroupRenderer.render_svg(g, "doc/circles", fill_background=True))
+outer_circle
+    .add(inner_circle.to(50, 0))
+    .add(inner_circle.to(-50, 0))
+    .do(RenderBuilder().svg().file("doc/circles"))
 
 ```
 
@@ -78,11 +83,14 @@ outer_circle \
 ## Using union()
 
 ```python
-outer_circle \
-    .add(inner_circle.to(50, 0)) \
-    .add(inner_circle.to(-50, 0)) \
-    .union() \
-    .do(lambda g: GroupRenderer.render_svg(g, "doc/circles-union", fill_background=True))
+from shart.group import Group
+from shart.renderers import RenderBuilder
+
+outer_circle
+    .add(inner_circle.to(50, 0))
+    .add(inner_circle.to(-50, 0))
+    .union()
+    .do(RenderBuilder().svg().file("doc/circles-union"))
 ```
 
 ![Generated SVG](./doc/circles-union.svg)
@@ -90,15 +98,18 @@ outer_circle \
 ## Boolean operations
 
 ```python
+from shart.group import Group
+from shart.renderers import RenderBuilder
+
 center_rect = Group.rect_centered(0, 0, 100, 100)
 
 spin_rects = Group.rect(0, -5, 100, 10)
 
-spin_rects \
-        .spin(0, 0, 20, should_rotate=True) \
-        .difference(center_rect) \
-        .union() \
-        .do(lambda g: GroupRenderer.render_svg(g, "doc/boolean", fill_background=True))
+spin_rects
+    .spin(0, 0, 20, should_rotate=True)
+    .difference(center_rect)
+    .union()
+    .do(RenderBuilder().svg().file("doc/boolean"))
 ```
 
 ![Generated SVG](./doc/boolean.svg)
@@ -106,9 +117,12 @@ spin_rects \
 ## Using spin()
 
 ```python
-Group.rect_centered(50, 0, 10, 10) \
-    .spin(0, 0, 10, should_rotate=True) \
-    .do(lambda g: GroupRenderer.render_svg(g, "doc/rects", fill_background=True))
+from shart.group import Group
+from shart.renderers import RenderBuilder
+
+Group.rect_centered(50, 0, 10, 10)
+    .spin(0, 0, 10, should_rotate=True)
+    .do(RenderBuilder().svg().file("doc/rects"))
 ```
 
 ![Generated SVG](./doc/rects.svg)
@@ -118,10 +132,13 @@ Group.rect_centered(50, 0, 10, 10) \
 Pass in a lambda which applies the desired transformation for a given increment
 
 ```python
-Group.rect_centered(0, 0, 10, 10) \
-       .linarray(10,
-               lambda i, g: g.to(i * 20, 0).rotate(i * 10, use_radians=False)) \
-        .do(lambda g: GroupRenderer.render_svg(g, "doc/rects-linarray", fill_background=True))
+from shart.group import Group
+from shart.renderers import RenderBuilder
+
+Group.rect_centered(0, 0, 10, 10)
+    .linarray(10,
+              lambda i, g: g.to(i * 20, 0).rotate(i * 10, use_radians=False))
+    .do(RenderBuilder().svg().file("doc/rects-linarray"))
 ```
 
 ![Generated SVG](./doc/rects-linarray.svg)
@@ -131,15 +148,17 @@ Group.rect_centered(0, 0, 10, 10) \
 ### The easy way, using Coordinates
 
 ```python
+from shart.group import Group
+from shart.renderers import RenderBuilder
 from shart.coordinates import Coordinates
 
 container = Group.circle(70, 70, 140)
 
-Group() \
-        .add_all(Group.circle(c[0], c[1], 4) for c in Coordinates.hex(17, 17, 10)) \
-        .filter(lambda g: container.contains(g)) \
-        .add(container) \
-        .do(lambda g: GroupRenderer.render_svg(g, "doc/hexagons", fill_background=True))
+Group()
+    .add_all(Group.circle(c[0], c[1], 4) for c in Coordinates.hex(17, 17, 10))
+    .filter(lambda g: container.contains(g))
+    .add(container)
+    .do(RenderBuilder().svg().file("doc/hexagons"))
 ```
 
 ![Generated SVG](./doc/hexagons.svg)
@@ -154,10 +173,16 @@ by l/2.
 With this information it's possible to determine the necessary 2d array coords:
 
 ```python
+import math
+
+from shart.group import Group
+from shart.renderers import RenderBuilder
+
 lattice_spacing = 10
 
 row_count = 17
 col_count = 17
+
 
 def gen_row(row_number, g):
     num_cols = col_count if row_number % 2 == 0 else col_count - 1
@@ -170,17 +195,17 @@ def gen_row(row_number, g):
 
     # fill in the remainder of the row
     return row_start.linarray(
-            num_cols,
-            lambda i, g: g.translate(i * lattice_spacing, 0))
+        num_cols,
+        lambda i, g: g.translate(i * lattice_spacing, 0))
+
 
 lattice = Group.circle(0, 0, 4).linarray(row_count, gen_row)
 
 container = Group.circle(70, 70, 140)
 
-lattice.filter(lambda g: container.contains(g)) \
-    .add(container) \
-    .do(lambda g: GroupRenderer.render_svg(g, "doc/hexagons-hard", fill_background=True))
-
+lattice.filter(lambda g: container.contains(g))
+    .add(container)
+    .do(RenderBuilder().svg().file("doc/hexagons-hard"))
 ```
 
 Also here I use `filter()` to only include the circles inside the larger circle.
@@ -194,37 +219,47 @@ The result is the same.
 Use the `recurse()` method to generate recursive subgeometries:
 
 ```python
+import numpy as np
+
+from shart.group import Group
+from shart.renderers import RenderBuilder
+
 
 def get_fractal_visitor(i0, i1, angle=45, scale=0.8):
-
     def modifier(g):
         pa = g.geoms.geoms[0].boundary.coords[i0]
         pb = g.geoms.geoms[0].boundary.coords[i1]
 
         pab = tuple(np.subtract(pb, pa))
 
-        subgroup = g.translate(pab[0], pab[1]) \
-                .scale(scale, origin=pb) \
-                .rotate(angle, origin=pb, use_radians=False)
+        subgroup = g.translate(pab[0], pab[1])
+            .scale(scale, origin=pb)
+            .rotate(angle, origin=pb, use_radians=False)
 
-
-        return [ subgroup ]
+        return [subgroup]
 
     return modifier
 
+
 # stacking recurse operations (careful, gets expensive fast!)
-Group.rect(0, 0, 100, 100) \
-    .recurse(get_fractal_visitor(-2, 1, angle=38, scale=0.8), 15) \
-    .map_subgroups(lambda g: g.recurse(get_fractal_visitor(1, 3, angle=45, scale=0.6), 4)) \
-    .map_subgroups(lambda g: g.recurse(get_fractal_visitor(-1, 2, angle=45, scale=0.5), 4)) \
-    .border(20, 20) \
-    .do(lambda g: GroupRenderer.render_svg(g, "doc/recurse-single", fill_background=True))
+Group.rect(0, 0, 100, 100)
+    .recurse(get_fractal_visitor(-2, 1, angle=38, scale=0.8), 15)
+    .map_subgroups(lambda g: g.recurse(get_fractal_visitor(1, 3, angle=45, scale=0.6), 4))
+    .map_subgroups(lambda g: g.recurse(get_fractal_visitor(-1, 2, angle=45, scale=0.5), 4))
+    .border(20, 20)
+    .do(RenderBuilder().svg().file("doc/recurse-single"))
 
 ```
 
 ![Generated SVG](./doc/recurse-single.svg)
 
 ```python
+import numpy as np
+
+from shart.group import Group
+from shart.renderers import RenderBuilder
+
+
 def branching_fractal_visitor(g):
     scale = 0.5
     angle = 10
@@ -237,46 +272,54 @@ def branching_fractal_visitor(g):
     tl_br = tuple(np.subtract(bottom_right, top_left))
     tr_bl = tuple(np.subtract(bottom_left, top_right))
 
-    subgroup1 = g.translate(tl_br[0], tl_br[1]) \
-            .scale(scale, origin=bottom_right) \
-            .rotate(angle, origin=bottom_right, use_radians=False)
+    subgroup1 = g.translate(tl_br[0], tl_br[1])
+        .scale(scale, origin=bottom_right)
+        .rotate(angle, origin=bottom_right, use_radians=False)
 
-    subgroup2 = g.translate(tr_bl[0], tr_bl[1]) \
-            .scale(scale, origin=bottom_left) \
-            .rotate(-angle, origin=bottom_left, use_radians=False)
+    subgroup2 = g.translate(tr_bl[0], tr_bl[1])
+        .scale(scale, origin=bottom_left)
+        .rotate(-angle, origin=bottom_left, use_radians=False)
 
-    return [ subgroup1,  subgroup2 ]
+    return [subgroup1, subgroup2]
 
-Group.rect(0, 0, 100, 100) \
-    .recurse(branching_fractal_visitor, 6) \
-    .border(20, 20) \
-    .do(lambda g: GroupRenderer.render_svg(g, "doc/recurse-tree", fill_background=True))
+
+Group.rect(0, 0, 100, 100)
+    .recurse(branching_fractal_visitor, 6)
+    .border(20, 20)
+    .do(RenderBuilder().svg().file("doc/recurse-tree"))
 
 ```
 
 ![Generated SVG](./doc/recurse-tree.svg)
 
 ## Combining multiple operations
+
 ```python
+import math
+
+from shart.group import Group
+from shart.renderers import RenderBuilder
+from shart.coordinates import Coordinates
 
 flower = Coordinates.polar(300, lambda t: 10 + 150 * abs(math.cos(t * 3))).to_group()
 
 hexagon = Coordinates.polar(6, lambda t: 2).to_group()
-hexagons = Group().add_all(hexagon.to(c[0], c[1]) for c in Coordinates.hex_covering(4 * math.sqrt(4/3), flower, row_parity=True))
+hexagons = Group().add_all(
+    hexagon.to(c[0], c[1]) for c in Coordinates.hex_covering(4 * math.sqrt(4 / 3), flower, row_parity=True))
 
-bars = Group() \
-        .add_all(Group.rect_centered(0, c[1], 320, 20) for c in Coordinates.linear(10, dy=40, centered_on=(0, 0))) \
-        .intersection(flower)
+bars = Group()
+    .add_all(Group.rect_centered(0, c[1], 320, 20) for c in Coordinates.linear(10, dy=40, centered_on=(0, 0)))
+    .intersection(flower)
 
-hexagons \
-        .filter(lambda g: flower.covers(g)) \
-        .filter(lambda g: not bars.intersects(g)) \
-        .add(bars) \
-        .add(
-                flower.do_and_add(lambda f: f.buffer(10).add(f.buffer(15)))
-                ) \
-        .border(10, 10) \
-        .do(lambda g: GroupRenderer.render_svg(g, "doc/polar-w-boolean", fill_background=True))
+hexagons
+    .filter(lambda g: flower.covers(g))
+    .filter(lambda g: not bars.intersects(g))
+    .add(bars)
+    .add(
+    flower.do_and_add(lambda f: f.buffer(10).add(f.buffer(15)))
+)
+    .border(10, 10)
+    .do(RenderBuilder().svg().file("doc/polar-w-boolean"))
 
 ```
 
@@ -287,6 +330,11 @@ hexagons \
 You can cut finger joints as well as slots (needs some real world testing :) )
 
 ```python
+import shapely as sh
+
+from shart.group import Group
+from shart.renderers import RenderBuilder
+
 from shart.box import *
 
 fgen_male = FingerGenerator.create_for_length(100, 5, True, 6.5, 1, 0.1)
@@ -306,13 +354,13 @@ bf.assign_edge(3, fgen_female)
 # left
 bf.assign_edge(1, fgen_male)
 
-bf.generate_group() \
-    .union() \
-    .do_and_add(lambda g: g.translate(121, 0)) \
-    .do_and_add(lambda g: g.translate(0, 121)) \
-    .add(fgen_male.get_slots(((50, 0), (50, 100))).do(lambda s: s.translate(-s.bounds_width / 2, 0))) \
-    .border(20, 20) \
-    .do(lambda g: GroupRenderer.render_svg(g, "doc/finger-joint", fill_background=True))
+bf.generate_group()
+    .union()
+    .do_and_add(lambda g: g.translate(121, 0))
+    .do_and_add(lambda g: g.translate(0, 121))
+    .add(fgen_male.get_slots(((50, 0), (50, 100))).do(lambda s: s.translate(-s.bounds_width / 2, 0)))
+    .border(20, 20)
+    .do(RenderBuilder().svg().file("doc/finger-joint"))
 ```
 
 ![Generated SVG](./doc/finger-joint.svg)
@@ -325,25 +373,36 @@ and female profiles for various phases.
 ![Generated SVG](./doc/finger-joint-phases.svg)
 
 # Rendering geometries not based on a group
+
 ```python
-extra_geoms = [ sh.geometry.LineString([ ( 50 / math.sqrt(2), 50 / math.sqrt(2) ), ( 100, 100 ) ]) ]
-Group.circle(0, 0, 100) \
-    .add(Group.circle(0, 0, 50)) \
-    .do(lambda g:
-        GroupRenderer.render_svg(
-            g,
-            "doc/non-group",
-            fill_background=True,
-            post_render=lambda geom_r, prim_r: [geom_r.render(eg, prim_r) for eg in extra_geoms]))
+import shapely as sh
+
+import math
+
+from shart.group import Group
+from shart.renderers import RenderBuilder
+
+extra_geoms = [sh.geometry.LineString([(50 / math.sqrt(2), 50 / math.sqrt(2)), (100, 100)])]
+Group.circle(0, 0, 100)
+    .add(Group.circle(0, 0, 50))
+    .do(RenderBuilder()
+    .svg()
+    .file("doc/non-group")
+    .post_render_callback(
+    lambda geom_r, prim_r: [geom_r.render(eg, prim_r) for eg in extra_geoms]))
 ```
 
 ![Generated SVG](./doc/non-group.svg)
 
 # Creating a Group from text
+
 ```python
-Group.from_text("Hi world", "Linux Libertine O", 50) \
-    .border(10, 10) \
-    .do(lambda g: GroupRenderer.render_svg(g, "doc/text", fill_background=True))
+from shart.group import Group
+from shart.renderers import RenderBuilder
+
+Group.from_text("Hi world", "Linux Libertine O", 50)
+    .border(10, 10)
+    .do(RenderBuilder().svg().file("doc/text"))
 ```
 
 This honestly does not work all that well (boolean ops etc.) and is kind of an afterthought. Text is useful to be able 

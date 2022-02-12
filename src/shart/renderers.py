@@ -21,13 +21,17 @@ class PrimitiveRenderer:
 
 class SVGPrimitiveRenderer(PrimitiveRenderer):
 
-    def __init__(self, output_file_path, width, height, fill_background=False, append_dimension_to_file_path=False):
-        self._output_file_path = output_file_path +\
-            (f"{width}_{height}.svg" if append_dimension_to_file_path else ".svg")
-
+    def __init__(self,
+                 output_file_path,
+                 width,
+                 height,
+                 fill_background=False,
+                 svg_unit=cairo.SVGUnit.MM):
+        self._output_file_path = output_file_path
         self._width = width
         self._height = height
         self._fill_background = fill_background
+        self._svg_unit = svg_unit
 
         self.surface = None
         self.context = None
@@ -37,6 +41,8 @@ class SVGPrimitiveRenderer(PrimitiveRenderer):
             raise RuntimeError("Surface already initialized.")
 
         self.surface = cairo.SVGSurface(self._output_file_path, self._width, self._height)
+        self.surface.set_document_unit(self._svg_unit)
+
         self.context = cairo.Context(self.surface)
 
         if self._fill_background:
@@ -123,3 +129,113 @@ class GroupRenderer:
         post_render(geom_renderer, primitive_renderer)
 
         primitive_renderer.finish_canvas()
+
+
+class RenderBuilder:
+
+
+    SVG_UNIT_MAP = {
+        "user": cairo.SVGUnit.USER,
+        "em": cairo.SVGUnit.EM,
+        "ex": cairo.SVGUnit.EX,
+        "px": cairo.SVGUnit.PX,
+        "in": cairo.SVGUnit.IN,
+        "inches": cairo.SVGUnit.IN,
+        "cm": cairo.SVGUnit.CM,
+        "mm": cairo.SVGUnit.MM,
+        "pt": cairo.SVGUnit.PT,
+        "pc": cairo.SVGUnit.PC,
+        "percent": cairo.SVGUnit.PERCENT,
+    }
+
+    def __init__(self):
+        self._fill_background = True
+        self._filename = None
+        self._append_dimensions_to_file_name = False
+        self._output_format = None
+        self._units = "mm"
+
+        self._pre_render_callback = lambda geom_renderer, primitive_renderer: None
+        self._post_render_callback = lambda geom_renderer, primitive_renderer: None
+
+    def file(self, filename):
+        self._filename = filename
+        return self
+
+    def svg(self):
+        self._output_format = "svg"
+        return self
+
+    def units_mm(self):
+        return self.units("mm")
+
+    def units_inches(self):
+        return self.units("inches")
+
+    def units(self, units):
+        self._units = units
+        return self
+
+    def append_dimensions_to_file_name(self, on=True):
+        self._append_dimensions_to_file_name = on
+        return self
+
+    def fill_background(self, on=True):
+        self._fill_background = on
+        return self
+
+    def pre_render_callback(self, pre_render_callback):
+        self._pre_render_callback = pre_render_callback
+        return self
+
+    def post_render_callback(self, post_render_callback):
+        self._post_render_callback = post_render_callback
+        return self
+
+    def _get_output_file_path(self, group):
+        result = self._filename
+
+        if self._append_dimensions_to_file_name:
+            result = result + f"{group.bounds_width}_{group.bounds_height}"
+
+        return result + "." + self._output_format
+
+    def _get_render_units(self):
+        if self._output_format == "svg":
+            if self._units not in RenderBuilder.SVG_UNIT_MAP.keys():
+                raise ValueError(f"Unknown unit for {self._output_format}: {self._units}")
+
+            return RenderBuilder.SVG_UNIT_MAP[self._units]
+        else:
+            raise NotImplementedError()
+
+    def _get_primitive_renderer(self, group):
+        if self._output_format is None:
+            raise ValueError("No output format specified")
+        elif self._output_format == "svg":
+            return SVGPrimitiveRenderer(
+                self._get_output_file_path(group),
+                group.bounds_width,
+                group.bounds_height,
+                self._fill_background,
+                svg_unit=self._get_render_units())
+
+    @staticmethod
+    def _get_geom_renderer(group):
+        return GeometryRenderer(-group.bounds_x, -group.bounds_y)
+
+    def __call__(self, group):
+        primitive_renderer = self._get_primitive_renderer(group)
+        geometry_renderer = RenderBuilder._get_geom_renderer(group)
+
+        primitive_renderer.init_canvas()
+
+        self._pre_render_callback(geometry_renderer, primitive_renderer)
+
+        for geom in group.geoms.geoms:
+            geometry_renderer.render(geom, primitive_renderer)
+
+        self._post_render_callback(geometry_renderer, primitive_renderer)
+
+        primitive_renderer.finish_canvas()
+
