@@ -111,20 +111,20 @@ class Group:
                     sh.geometry.MultiPolygon([ g.union(geom) for g in self.geoms.geoms  ])
                     )
 
-    def to(self, x_coord, y_coord, center=(None, None)):
+    def to(self, x_coord, y_coord, center=None):
 
         # if the user does not define a center, use the
         # geometric centroid
-        cx = center[0] or self.geoms.centroid.x
-        cy = center[1] or self.geoms.centroid.y
+        cx = center[0] if center is not None else self.geoms.centroid.x
+        cy = center[1] if center is not None else self.geoms.centroid.y
 
         dx = x_coord - cx
-        dy = y_coord - cx
+        dy = y_coord - cy
 
         return Group(sh.affinity.translate(self.geoms, dx, dy))
 
-    def buffer(self, amount, resolution=16):
-        return Group.from_geomarray([self.geoms.buffer(amount, resolution)])
+    def buffer(self, amount, resolution=16, join_style=sh.geometry.JOIN_STYLE.round):
+        return Group.from_geomarray([self.geoms.buffer(amount, resolution, join_style=join_style)])
 
     def translate(self, dx, dy):
         return Group(sh.affinity.translate(self.geoms, dx, dy))
