@@ -372,6 +372,36 @@ and female profiles for various phases.
 
 ![Generated SVG](./doc/finger-joint-phases.svg)
 
+# Creating mating profiles
+It is possible to use the SlotGenerator to buffer geometries with appropriate
+kerf + clearance:
+
+```python
+import shapely as sh
+import shapely.geometry
+
+from shart.group import Group
+from shart.renderers import RenderBuilder
+
+from shart.box import *
+
+# clearance set to 2 linewidths for clarity
+sg = SlotGenerator(kerf=1, clearance=2)
+
+dovetails = Group.from_geomarray([sh.geometry.Polygon([(0, 0), (1, 0), (1.5, 1), (-0.5, 1)])])\
+    .scale(10, 10, origin=(0, 0))\
+    .linarray(3, lambda i, g: g.to(15 + i * 30, 48, center=(0, 0)))
+
+sheet_a = Group.rect(0, 0, 100, 50).add(sg.buffer_profile(dovetails, False)).union()
+sheet_b = Group.rect(0, 51, 100, 50).difference(sg.buffer_profile(dovetails, True))
+
+sheet_a.add(sheet_b)\
+    .border(10, 10)\
+    .do(RenderBuilder().svg().file("doc/dovetail"))
+```
+
+![Generated SVG](./doc/dovetail.svg)
+
 # Rendering geometries not based on a group
 
 ```python

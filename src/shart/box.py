@@ -1,6 +1,49 @@
 import math
 
+import shapely as sh
+import shapely.geometry
+
 from .group import Group
+
+
+# Generate mating halved joints with the specified clearance
+class SlotGenerator:
+
+    def __init__(self, kerf, clearance):
+        self._kerf = kerf
+        self._clearance = clearance
+
+    # grow and shrink arbitrary profiles to mate
+    # with eachother
+    def buffer_profile(self, group, is_hole):
+        if is_hole:
+            return group.buffer((-self._kerf + self._clearance) / 2, join_style=sh.geometry.JOIN_STYLE.mitre)
+        else:
+            return group.buffer((self._kerf - self._clearance) / 2, join_style=sh.geometry.JOIN_STYLE.mitre)
+
+    def get_slot(self, line, width, is_hole):
+        x0 = line[0][0]
+        y0 = line[0][1]
+        x1 = line[1][0]
+        y1 = line[1][1]
+
+        dx = x1 - x0
+        dy = y1 - y0
+
+        line_length = math.hypot(dx, dy)
+
+        xc = x0 + dx / 2
+        yc = y0 + dy / 2
+
+        if is_hole:
+            render_width = width - self._kerf + self._clearance
+            render_length = line_length - self._kerf + self._clearance
+        else:
+            render_width = width + self._kerf - self._clearance
+            render_length = line_length + self._kerf - self._clearance
+
+        return Group.rect_centered(xc, yc, render_width, render_length)\
+            .rotate(math.atan2(dx, dy))
 
 
 class BoxFace:

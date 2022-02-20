@@ -8,7 +8,7 @@ import numpy as np
 
 from shart.group import Group
 from shart.coordinates import Coordinates
-from shart.box import BoxFace, FingerGenerator
+from shart.box import BoxFace, FingerGenerator, SlotGenerator
 from shart.renderers import GroupRenderer, RenderBuilder, SVGPrimitiveRenderer, GeometryRenderer
 
 import shapely as sh
@@ -240,3 +240,29 @@ Group.circle(0, 0, 100) \
 Group.from_text("Hi world", "Linux Libertine O", 50) \
     .border(10, 10) \
     .do(RenderBuilder().svg().file("doc/text"))
+
+sf = SlotGenerator(1, 2)
+
+a_profile = Group.rect(0, 0, 100, 50)\
+    .union(sf.get_slot([(50, 25), (50, 75)], 10, is_hole=False))
+
+b_profile = Group.rect(0, 52, 100, 50)\
+    .difference(sf.get_slot([(50, 49), (50, 75)], 10, is_hole=True))
+
+a_profile.add(b_profile)\
+    .border(10, 10)\
+    .do(RenderBuilder().svg().file("doc/slot"))
+
+sg = SlotGenerator(kerf=1, clearance=2)
+
+# dovetails
+dovetails = Group.from_geomarray([sh.geometry.Polygon([(0, 0), (1, 0), (1.5, 1), (-0.5, 1)])])\
+    .scale(10, 10, origin=(0, 0))\
+    .linarray(3, lambda i, g: g.to(15 + i * 30, 48, center=(0, 0)))
+
+sheet_a = Group.rect(0, 0, 100, 50).add(sg.buffer_profile(dovetails, False)).union()
+sheet_b = Group.rect(0, 51, 100, 50).difference(sg.buffer_profile(dovetails, True))
+
+sheet_a.add(sheet_b)\
+    .border(10, 10)\
+    .do(RenderBuilder().svg().file("doc/dovetail"))
