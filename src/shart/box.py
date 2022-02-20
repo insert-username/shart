@@ -21,6 +21,14 @@ class SlotGenerator:
         else:
             return group.buffer((self._kerf - self._clearance) / 2, join_style=sh.geometry.JOIN_STYLE.mitre)
 
+    # returns the separation to render two objects in order
+    # to achieve the desired clearance. Note this value may be
+    # negative, if the kerf is greater than the clearance.
+    # if this is the case, the objects will need to be moved
+    # apart for cutting (otherwise the cuts will overlap)
+    def get_object_separation(self):
+        return self._clearance - self._kerf
+
     def get_slot(self, line, width, is_hole):
         x0 = line[0][0]
         y0 = line[0][1]

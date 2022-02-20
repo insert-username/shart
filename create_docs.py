@@ -260,9 +260,14 @@ dovetails = Group.from_geomarray([sh.geometry.Polygon([(0, 0), (1, 0), (1.5, 1),
     .scale(10, 10, origin=(0, 0))\
     .linarray(3, lambda i, g: g.to(15 + i * 30, 48, center=(0, 0)))
 
-sheet_a = Group.rect(0, 0, 100, 50).add(sg.buffer_profile(dovetails, False)).union()
-sheet_b = Group.rect(0, 51, 100, 50).difference(sg.buffer_profile(dovetails, True))
+sheet_a = Group.rect(0, 0, 100, 50)
+sheet_b = sheet_a\
+    .translate(0, sheet_a.bounds_height)\
+    .translate(0, sg.get_object_separation())  # add the offset required to mate the profiles with the desired clearance
 
-sheet_a.add(sheet_b)\
+sheet_a = sheet_a.add(sg.buffer_profile(dovetails, False)).union()
+sheet_b = sheet_b.difference(sg.buffer_profile(dovetails, True))
+
+Group.arrange([ sheet_a.add(sheet_b), sheet_a, sheet_b ], 10)\
     .border(10, 10)\
     .do(RenderBuilder().svg().file("doc/dovetail"))
