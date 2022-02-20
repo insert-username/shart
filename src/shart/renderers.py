@@ -153,7 +153,7 @@ class RenderBuilder:
         self._filename = None
         self._append_dimensions_to_file_name = False
         self._output_format = None
-        self._units = "mm"
+        self._units = "pt"
 
         self._pre_render_callback = lambda geom_renderer, primitive_renderer: None
         self._post_render_callback = lambda geom_renderer, primitive_renderer: None
