@@ -407,6 +407,7 @@ Group.arrange([ sheet_a.add(sheet_b), sheet_a, sheet_b ], 10)\
 ```
 
 ![Generated SVG](./doc/dovetail.svg)
+
 (Showing the mated profiles + the cut arrangement)
 
 # Rendering geometries not based on a group
