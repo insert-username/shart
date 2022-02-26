@@ -43,7 +43,11 @@ lambda for alternative outputs.
 from shart.group import Group
 from shart.renderers import RenderBuilder
 
-Group.circle(0, 0, 100).do(RenderBuilder().svg().file("doc/circle"))
+Group.circle(0, 0, 100).do(
+    RenderBuilder()
+        .svg()
+        .units_mm()
+        .file("doc/circle"))
 ```
 
 ![Generated SVG](./doc/circle.svg)
