@@ -38,7 +38,7 @@ def anchor_geom(total_geoms):
 
 # generate circular array coordinates
 def circular_array_coords(radius, count):
-    return [ (radius * math.cos(a), radius * math.sin(a), a) for a in np.linspace(0, 2 * math.pi, count + 1) ][0:-1]
+    return [ (radius * math.cos(a), radius * math.sin(a), a) for a in np.linspace(0, 2 * math.pi, count, endpoint=False) ]
 
 
 # duplicate geom in circular array

@@ -149,7 +149,7 @@ class Group:
                 geom_centroid,
                 should_rotate)
 
-        result = self
+        result = Group()
         for p in polys:
             result = result.add(p)
 
