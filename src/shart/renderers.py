@@ -1,5 +1,6 @@
 import cairo
 
+from defusedxml import ElementTree as etree
 
 class PrimitiveRenderer:
 
@@ -21,6 +22,31 @@ class PrimitiveRenderer:
 
 class SVGPrimitiveRenderer(PrimitiveRenderer):
 
+    class SVGFileModifier:
+
+        def __init__(self):
+            self.lines = []
+
+        def read(self):
+            raise NotImplementedError()
+
+        def write(self, content):
+            self.lines.append(content)
+
+        def get_modified_contents(self):
+            document = ''.join(line.decode("utf-8") for line in self.lines)
+            tree = etree.fromstring(document)
+
+            groups = [g for g in tree if g.tag.endswith("}g")]
+
+            if len(groups) != 1:
+                raise ValueError("Output should consist of single group.")
+
+            group_element = groups[0]
+            group_element.attrib["id"] = "surface"
+
+            return etree.tostring(tree, encoding="unicode")
+
     def __init__(self,
                  output_file_path,
                  width,
@@ -28,6 +54,7 @@ class SVGPrimitiveRenderer(PrimitiveRenderer):
                  fill_background=False,
                  svg_unit=cairo.SVGUnit.MM):
         self._output_file_path = output_file_path
+        self._svg_file_modifier = SVGPrimitiveRenderer.SVGFileModifier()
         self._width = width
         self._height = height
         self._fill_background = fill_background
@@ -40,7 +67,7 @@ class SVGPrimitiveRenderer(PrimitiveRenderer):
         if self.surface is not None:
             raise RuntimeError("Surface already initialized.")
 
-        self.surface = cairo.SVGSurface(self._output_file_path, self._width, self._height)
+        self.surface = cairo.SVGSurface(self._svg_file_modifier, self._width, self._height)
         self.surface.set_document_unit(self._svg_unit)
 
         self.context = cairo.Context(self.surface)
@@ -70,6 +97,9 @@ class SVGPrimitiveRenderer(PrimitiveRenderer):
             raise RuntimeError("Surface already completed.")
 
         self.surface.finish()
+
+        with open(self._output_file_path, "w") as f:
+            f.write(self._svg_file_modifier.get_modified_contents())
 
 
 class GeometryRenderer:
