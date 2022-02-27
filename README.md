@@ -99,6 +99,45 @@ outer_circle
 
 ![Generated SVG](./doc/circles-union.svg)
 
+## LineString and Polygon based groups
+
+Since there are so many common operations between the two, 
+Groups can be constructed from both MultiLineStrings and MultiPolygons.
+Whether groups can be combined using `add()` etc. depends on the individual
+operation. A MultiPolygon Group can be converted to a MultiLineString 
+Group using `to_boundary()`
+
+```python
+import shapely as sh
+import shapely.geometry
+from shart.group import Group
+from shart.renderers import RenderBuilder
+
+Group.line(0, 0, 30, 0)\
+    .spin(0, 0, 10, geom_centroid=sh.geometry.Point(10, 0), should_rotate=True)\
+    .do(RenderBuilder().svg().file("doc/line"))
+```
+
+![Generated SVG](./doc/line.svg)
+
+```python
+import shapely as sh
+import shapely.geometry
+from shart.group import Group
+from shart.renderers import RenderBuilder
+
+Group.line(0, 0, 30, 0)\
+    .spin(0, 0, 10, geom_centroid=sh.geometry.Point(10, 0), should_rotate=True)\
+    .do_and_add(lambda g: g.buffer(10).to_boundary())\
+    .do(RenderBuilder().svg().file("doc/line"))
+```
+
+![Generated SVG](./doc/line-boundary.svg)
+
+Note that in the above example, after `buffer()` is called, the resulting Group is of 
+type MultiPolygon. Since a MultiPolygon Group cannot be added to a MultiLineString Group,
+it is converted to a MultiLineString Group via `to_boundary()`
+
 ## Boolean operations
 
 ```python

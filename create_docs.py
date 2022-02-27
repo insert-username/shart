@@ -14,6 +14,8 @@ from shart.renderers import GroupRenderer, RenderBuilder, SVGPrimitiveRenderer, 
 import shapely as sh
 import shapely.geometry
 
+print("Creating circle")
+
 # Single shape
 Group.circle(0, 0, 100) \
     .do(RenderBuilder()
@@ -21,11 +23,14 @@ Group.circle(0, 0, 100) \
         .units_mm()
         .file("doc/circle"))
 
+print("Creating circle-add")
+
 # Multiple shapes are allowed
 Group.circle(0, 0, 100) \
     .add(Group.circle(0, 0, 50)) \
     .do(RenderBuilder().svg().file("doc/circle-add"))
 
+print("Creating circles")
 
 # Group is immutable so you can easily perform multiple transformations using the same base group
 outer_circle = Group.circle(0, 0, 100)
@@ -37,6 +42,7 @@ outer_circle \
     .add(inner_circle.to(-50, 0)) \
     .do(RenderBuilder().svg().file("doc/circles"))
 
+print("Creating circles-union")
 
 # Using union()
 outer_circle \
@@ -45,6 +51,18 @@ outer_circle \
     .union() \
     .do(RenderBuilder().svg().file("doc/circles-union"))
 
+print("Creating line")
+Group.line(0, 0, 30, 0)\
+    .spin(0, 0, 10, geom_centroid=sh.geometry.Point(0, 0), should_rotate=True)\
+    .do(RenderBuilder().svg().file("doc/line"))
+
+print("Creating line w. buffer")
+Group.line(0, 0, 50, 0)\
+    .spin(0, 0, 10, geom_centroid=sh.geometry.Point(0, 0), should_rotate=True)\
+    .do_and_add(lambda g: g.buffer(10).to_boundary())\
+    .do(RenderBuilder().svg().file("doc/line-boundary"))
+
+print("Creating boolean")
 
 # Boolean operations
 
@@ -59,11 +77,15 @@ spin_rects \
         .do(RenderBuilder().svg().file("doc/boolean"))
 
 
+print("Creating rects")
+
 # Using spin()
 Group.rect_centered(50, 0, 10, 10) \
     .spin(0, 0, 10, should_rotate=True) \
     .do(RenderBuilder().svg().file("doc/rects"))
 
+
+print("Creating rects-linarray")
 
 # Using linarray()
 Group.rect_centered(0, 0, 10, 10) \
@@ -72,11 +94,14 @@ Group.rect_centered(0, 0, 10, 10) \
        .do(RenderBuilder().svg().file("doc/rects-linarray"))
 
 
+print("Creating hexagons-hard")
+
 # Creating hexagonal tiling
 lattice_spacing = 10
 
 row_count = 17
 col_count = 17
+
 
 def gen_row(row_number, g):
     num_cols = col_count if row_number % 2 == 0 else col_count - 1
@@ -92,6 +117,7 @@ def gen_row(row_number, g):
             num_cols,
             lambda i, g: g.translate(i * lattice_spacing, 0))
 
+
 lattice = Group.circle(0, 0, 4).linarray(row_count, gen_row)
 
 container = Group.circle(70, 70, 140)
@@ -100,12 +126,18 @@ lattice.filter(lambda g: container.contains(g)) \
     .add(container) \
     .do(RenderBuilder().svg().file("doc/hexagons-hard"))
 
+
+print("Creating hexagons")
+
 # Creating hexagonal tiling, the easy way
 Group() \
         .add_all(Group.circle(c[0], c[1], 4) for c in Coordinates.hex(17, 17, 10)) \
         .filter(lambda g: container.contains(g)) \
         .add(container) \
         .do(RenderBuilder().svg().file("doc/hexagons"))
+
+
+print("Creating polar-w-boolean")
 
 # Creating shapes from polar coordinates
 flower = Coordinates.polar(300, lambda t: 10 + 150 * abs(math.cos(t * 3))).to_group()
@@ -129,8 +161,10 @@ hexagons \
         .do(RenderBuilder().svg().file("doc/polar-w-boolean"))
 
 
-# Hey dawg I heard you like hey dawg I heard you like hey dawg I heard you like...
+print("Creating recurse-single")
 
+
+# Hey dawg I heard you like hey dawg I heard you like hey dawg I heard you like...
 def get_fractal_visitor(i0, i1, angle=45, scale=0.8):
 
     def modifier(g):
@@ -156,6 +190,8 @@ Group.rect(0, 0, 100, 100) \
     .border(20, 20) \
     .do(RenderBuilder().svg().file("doc/recurse-single"))
 
+
+print("Creating recurse-tree")
 
 def branching_fractal_visitor(g):
     scale = 0.5
@@ -186,6 +222,8 @@ Group.rect(0, 0, 100, 100) \
     .do(RenderBuilder().svg().file("doc/recurse-tree"))
 
 
+print("Creating finger-joint-phases")
+
 def create_for_phase(phase):
     bf = BoxFace(sh.geometry.box(0, 0, 100, 20))
     bf.assign_edge(2, FingerGenerator.create_for_length(100, 5, True, 6.5, 1, 0.1, duty=0.5, phase=phase))
@@ -200,6 +238,8 @@ Group() \
     .add_all([create_for_phase(p).translate(0, i * 40) for i, p in enumerate(np.linspace(0, 1, 10, endpoint=True))]) \
     .border(10, 10) \
     .do(RenderBuilder().svg().file("doc/finger-joint-phases"))
+
+print("Creating finger-joint")
 
 fgen_male = FingerGenerator.create_for_length(100, 5, True, 6.5, 1, 0.1)
 fgen_female = FingerGenerator.create_for_length(100, 5, False, 6.5, 1, 0.1)
@@ -226,6 +266,8 @@ bf.generate_group() \
     .border(20, 20) \
     .do(RenderBuilder().svg().file("doc/finger-joint"))
 
+print("Creating non-group")
+
 # Rendering non-group geoms
 extra_geoms = [ sh.geometry.LineString([ ( 50 / math.sqrt(2), 50 / math.sqrt(2) ), ( 100, 100 ) ]) ]
 Group.circle(0, 0, 100) \
@@ -236,10 +278,14 @@ Group.circle(0, 0, 100) \
         .post_render_callback(
             lambda geom_r, prim_r: [geom_r.render(eg, prim_r) for eg in extra_geoms]))
 
+print("Creating text")
+
 # Creating geoms from text
 Group.from_text("Hi world", "Linux Libertine O", 50) \
     .border(10, 10) \
     .do(RenderBuilder().svg().file("doc/text"))
+
+print("Creating slot")
 
 sf = SlotGenerator(1, 2)
 
@@ -252,6 +298,8 @@ b_profile = Group.rect(0, 52, 100, 50)\
 a_profile.add(b_profile)\
     .border(10, 10)\
     .do(RenderBuilder().svg().file("doc/slot"))
+
+print("Creating dovetail")
 
 sg = SlotGenerator(kerf=1, clearance=2)
 
