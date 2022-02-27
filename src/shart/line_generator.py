@@ -1,4 +1,5 @@
 import math
+from inspect import signature
 
 import shapely as sh
 import shapely.geometry
@@ -19,6 +20,33 @@ class Turtle:
             consumer(self, i)
 
         return self
+
+    def fork(self, forker, depth):
+        def instancer():
+            return Turtle(origin=self._current_position, angle_rad=self._current_angle_rad)
+
+        inputs = forker(0, instancer)
+        pending_forks = inputs
+
+        current_depth = 1
+        while True:
+            for p in pending_forks:
+                self._coords = p._coords + self._coords
+
+            if current_depth > depth:
+                return self
+
+            new_pending_forks = []
+            for p in pending_forks:
+                def instancer():
+                    return Turtle(origin=p._current_position, angle_rad=p._current_angle_rad)
+
+                forked = forker(current_depth, instancer)
+                new_pending_forks += forked
+
+            current_depth += 1
+            pending_forks = new_pending_forks
+
 
     def to_multilinestring(self):
         lines = [sh.geometry.LineString(l) for l in self._coords if len(l) > 1]

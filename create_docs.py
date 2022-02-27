@@ -2,6 +2,8 @@
 
 import math
 
+import sys
+
 import numpy as np
 import shapely as sh
 import shapely.geometry
@@ -229,6 +231,16 @@ Group.rect(0, 0, 100, 100) \
     .border(20, 20) \
     .do(RenderBuilder().svg().file("doc/recurse-tree"))
 
+print("Creating Turtle fork")
+forklength = lambda depth: max(0.0, 50 * math.pow(2, -depth))
+
+Turtle(angle_rad=math.radians(-90)).move(100).fork(lambda d, instance: (
+        instance().turn_deg(-50).move(forklength(d)),
+        instance().turn_deg(-20).move(forklength(d)),
+        instance().turn_deg(30).move(forklength(d))), 4)\
+    .to_group()\
+    .border(20, 20)\
+    .do(RenderBuilder().svg().file("doc/turtle-fork"))
 
 print("Creating finger-joint-phases")
 

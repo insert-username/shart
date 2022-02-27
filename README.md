@@ -361,6 +361,29 @@ Group.rect(0, 0, 100, 100)
 
 ![Generated SVG](./doc/recurse-tree.svg)
 
+## Turtle Fractals
+You can also create fractal lineart using the Turtle `fork()` method.
+
+```python
+import math
+from shart.line_generator import Turtle
+from shart.renderers import RenderBuilder
+
+forklength = lambda depth: max(0.0, 50 * math.pow(2, -depth))
+
+Turtle().move(100).fork(lambda d, instance: (
+            instance().turn_deg(-50).move(forklength(d)),
+            instance().turn_deg(-20).move(forklength(d)),
+            instance().turn_deg(30).move(forklength(d))
+        ), 4)\
+    .to_group()\
+    .border(20, 20)\
+    .do(RenderBuilder().svg().file("doc/turtle-fork"))
+```
+This generates some broccoli:
+
+![Generated SVG](./doc/turtle-fork.svg)
+
 ## Combining multiple operations
 
 ```python
