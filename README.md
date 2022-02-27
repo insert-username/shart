@@ -157,6 +157,32 @@ spin_rects
 
 ![Generated SVG](./doc/boolean.svg)
 
+## Turtle graphics (I LIKE TURTLES O_O)
+
+To make generating line geometries easier, there is a simple turtle graphics class:
+
+```python
+from shart.group import Group
+from shart.renderers import RenderBuilder
+from shart.line_generator import Turtle
+
+circ = Group.circle(0, 0, 120)
+Turtle(origin=(0, 0), angle_rad=math.radians(-90))\
+    .do(lambda t, i: t.move(3 * i).turn_deg(90), 50)\
+    .to_group()\
+    .intersection(circ)\
+    .add(circ.to_boundary())\
+    .border(10, 10)\
+    .do(RenderBuilder().svg().file("doc/turtle"))
+```
+
+Turtle supports a `do` method with range and index for easy inline looping.
+
+![Generated SVG](./doc/turtle.svg)
+
+Note that the MultiPolygon Group `circ` can be used directly for the `intersection()` boolean 
+operation, but in order to be added it must be converted to a MultiLineString Group.
+
 ## Using spin()
 
 ```python

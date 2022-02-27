@@ -2,17 +2,16 @@
 
 import math
 
-import itertools
-
 import numpy as np
-
-from shart.group import Group
-from shart.coordinates import Coordinates
-from shart.box import BoxFace, FingerGenerator, SlotGenerator
-from shart.renderers import GroupRenderer, RenderBuilder, SVGPrimitiveRenderer, GeometryRenderer
-
 import shapely as sh
 import shapely.geometry
+
+from shart.box import BoxFace, FingerGenerator, SlotGenerator
+from shart.coordinates import Coordinates
+from shart.group import Group
+from shart.line_generator import Turtle
+from shart.renderers import RenderBuilder
+
 
 print("Creating circle")
 
@@ -76,6 +75,15 @@ spin_rects \
         .union() \
         .do(RenderBuilder().svg().file("doc/boolean"))
 
+print("Turtle")
+circ = Group.circle(0, 0, 120)
+Turtle(origin=(0, 0), angle_rad=math.radians(-90))\
+    .do(lambda t, i: t.move(3 * i).turn_deg(90), 50)\
+    .to_group()\
+    .intersection(circ)\
+    .add(circ.to_boundary())\
+    .border(10, 10)\
+    .do(RenderBuilder().svg().file("doc/turtle"))
 
 print("Creating rects")
 
