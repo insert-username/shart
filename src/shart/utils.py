@@ -46,7 +46,7 @@ def circular_array(center_point, geom, count, geom_centroid=None, should_rotate=
     if geom_centroid is None:
         geom_centroid = geom.centroid
 
-    r = math.hypot(geom.centroid.x - center_point.x, geom.centroid.y - center_point.y)
+    r = math.hypot(geom_centroid.x - center_point.x, geom_centroid.y - center_point.y)
 
     coords = circular_array_coords(r, count)
 
@@ -56,20 +56,25 @@ def circular_array(center_point, geom, count, geom_centroid=None, should_rotate=
         translation_x = center_point.x + coord[0] - geom_centroid.x
         translation_y = center_point.y + coord[1] - geom_centroid.y
         instance = sh.affinity.translate(geom, translation_x, translation_y)
+
+        origin = sh.geometry.Point(
+            geom_centroid.x + translation_x,
+            geom_centroid.y + translation_y)
+
         if should_rotate:
-            instance = sh.affinity.rotate(instance, coord[2], use_radians=True)
+            instance = sh.affinity.rotate(instance, coord[2], origin=origin, use_radians=True)
 
         result.append(instance)
 
     return result
 
 
-def flatten_polygons(polygons):
+def flatten_geoms(polygons):
     result = []
 
     for p in polygons:
-        if p.type == "MultiPolygon":
-            result += flatten_polygons([ g for g in p.geoms ])
+        if p.type == "MultiPolygon" or p.type == "MultiLineString":
+            result += flatten_geoms([g for g in p.geoms])
         else:
             result.append(p)
 

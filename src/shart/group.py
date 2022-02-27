@@ -13,10 +13,15 @@ from .utils import *
 class Group:
 
     def __init__(self, geoms=None):
-        self.geoms = geoms or sh.geometry.MultiPolygon([])
+        if geoms is None:
+            self.geoms = sh.geometry.MultiPolygon([])
+            self.type = sh.geometry.MultiPolygon
+        else:
+            if not isinstance(geoms, sh.geometry.MultiPolygon) and not isinstance(geoms, sh.geometry.MultiLineString):
+                raise ValueError(f"Unsupported geom type: {geoms}")
 
-        if isinstance(self.geoms, Group):
-            raise ValueError()
+            self.geoms = geoms
+            self.type = type(geoms)
 
     @property
     def bounds_x(self):
@@ -38,11 +43,15 @@ class Group:
         return Group(anchor_geom(self.geoms)(self.geoms))
 
     def border(self, border_thickness, border_radius):
+        border_geom = create_border_box(self.geoms, border_thickness, border_radius)
+
+        if self.type == sh.geometry.MultiLineString:
+            border_geom = border_geom.boundary
+
         return Group(
-                sh.geometry.MultiPolygon(
-                        [ g for g in self.geoms.geoms ] + \
-                        [ create_border_box(self.geoms, border_thickness, border_radius) ]
-                    ))
+            self.type(
+                [g for g in self.geoms.geoms] + [border_geom]
+            ))
 
     def filter(self, predicate):
         return Group.from_geomarray([ g for g in self.geoms.geoms if predicate(Group.from_geomarray([g])) ])
@@ -59,21 +68,11 @@ class Group:
     def add(self, geom):
         if isinstance(geom, Group):
             return self.add(geom.geoms)
-        elif isinstance(geom, sh.geometry.base.BaseGeometry):
-            if geom.type == "MultiPolygon":
-                return Group(
-                    sh.geometry.MultiPolygon(
-                            [g for g in self.geoms.geoms] +
-                            [g for g in geom.geoms]
-                        ))
-            else:
-                return Group(
-                    sh.geometry.MultiPolygon(
-                            [g for g in self.geoms.geoms] +
-                            [ geom ]
-                        ))
+        elif isinstance(geom, self.type):
+            return Group.from_geomarray(
+                list(self.geoms.geoms) + list(geom.geoms))
         else:
-            raise ValueError()
+            raise ValueError(f"Cannot add type {geom} to group of type {self.type}")
 
     def add_all(self, groups):
         new_geoms = [ g for g in self.geoms.geoms ]
@@ -83,15 +82,15 @@ class Group:
 
         return Group.from_geomarray(new_geoms)
 
-    def intersection(self, geom):
-        return self.foreach_modify(lambda g: g.intersection(geom.geoms))
+    def intersection(self, group):
+        return self.foreach_modify(lambda g: g.intersection(group.geoms))
 
-    def difference(self, geom):
-        return self.foreach_modify(lambda g: g.difference(geom.geoms))
+    def difference(self, group):
+        return self.foreach_modify(lambda g: g.difference(group.geoms))
 
     def union(self, geom=None):
         if geom is None:
-            polygons = flatten_polygons([ g for g in self.geoms.geoms ])
+            polygons = flatten_geoms([g for g in self.geoms.geoms])
 
             union = sh.ops.unary_union(polygons)
 
@@ -99,8 +98,8 @@ class Group:
 
         elif isinstance(geom, Group):
             return self.union(geom.geoms)
-        elif geom.type == "MultiPolygon":
-            subgeoms = [ g for g in geom.geoms ]
+        elif geom.type == "MultiPolygon" or geom.type == "MultiLineString":
+            subgeoms = [g for g in geom.geoms]
 
             if len(subgeoms) != 1:
                 raise ValueError()
@@ -108,8 +107,8 @@ class Group:
             return self.union(subgeoms[0])
         else:
             return Group(
-                    sh.geometry.MultiPolygon([ g.union(geom) for g in self.geoms.geoms  ])
-                    )
+                sh.geometry.MultiPolygon([g.union(geom) for g in self.geoms.geoms])
+            )
 
     def to(self, x_coord, y_coord, center=None):
 
@@ -149,7 +148,7 @@ class Group:
                 geom_centroid,
                 should_rotate)
 
-        result = Group()
+        result = Group(self.type([]))
         for p in polys:
             result = result.add(p)
 
@@ -228,6 +227,18 @@ class Group:
 
         return False
 
+    def to_boundary(self):
+        if self.type != sh.geometry.MultiPolygon:
+            raise ValueError("Group is already of boundary type.")
+
+        return Group(self.geoms.boundary)
+
+    @staticmethod
+    def line(x0, y0, x1, y1):
+        return Group(sh.geometry.MultiLineString([
+            sh.geometry.LineString(((x0, y0), (x1, y1)))
+        ]))
+
     @staticmethod
     def rect(start_x, start_y, width, height):
         return Group(sh.geometry.MultiPolygon([
@@ -240,7 +251,16 @@ class Group:
 
     @staticmethod
     def from_geomarray(geomarray):
-        return Group(sh.geometry.MultiPolygon(flatten_polygons(geomarray)))
+        flattened = flatten_geoms(geomarray)
+
+        if len(flattened) == 0:
+            return Group()
+        elif flattened[0].type == "Polygon":
+            return Group(sh.geometry.MultiPolygon(flattened))
+        elif flattened[0].type == "LineString":
+            return Group(sh.geometry.MultiLineString(flattened))
+        else:
+            raise ValueError(f"Unsupported geom type: {flattened[0]}")
 
     @staticmethod
     def arrange(groups, clearance):
