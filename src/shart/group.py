@@ -72,7 +72,11 @@ class Group:
             return Group.from_geomarray(
                 list(self.geoms.geoms) + list(geom.geoms))
         else:
-            raise ValueError(f"Cannot add type {geom} to group of type {self.type}")
+            hint = ""
+            if self.type == sh.geometry.MultiLineString and type(geom) == sh.geometry.MultiPolygon:
+                hint = "Did you mean to call to_boundary() ?"
+
+            raise ValueError(f"Cannot add type {type(geom)} to group of type {self.type}. " + hint)
 
     def add_all(self, groups):
         new_geoms = [ g for g in self.geoms.geoms ]
