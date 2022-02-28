@@ -15,6 +15,14 @@ class Turtle:
 
         self._coords = [[ origin ]]
 
+    @property
+    def current_x(self):
+        return self._current_position[0]
+
+    @property
+    def current_y(self):
+        return self._current_position[1]
+
     def do(self, consumer, iterations=1):
         for i in range(0, iterations):
             consumer(self, i)
@@ -46,7 +54,6 @@ class Turtle:
 
             current_depth += 1
             pending_forks = new_pending_forks
-
 
     def to_multilinestring(self):
         lines = [sh.geometry.LineString(l) for l in self._coords if len(l) > 1]
@@ -92,18 +99,24 @@ class Turtle:
 
         return self
 
-    def pen_up(self):
+    def pen_up(self, ignore_redundant=False):
         if self._is_pen_up():
-            raise ValueError("Pen already up.")
+            if ignore_redundant:
+                return
+            else:
+                raise ValueError("Pen already up.")
 
         # starts a new line
         self._coords.append([])
 
         return self
 
-    def pen_down(self):
+    def pen_down(self, ignore_redundant=False):
         if not self._is_pen_up():
-            raise ValueError("Pen already down.")
+            if ignore_redundant:
+                return
+            else:
+                raise ValueError("Pen already down.")
 
         self._coords.append([self._current_position])
 
