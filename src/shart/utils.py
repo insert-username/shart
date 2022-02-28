@@ -84,5 +84,7 @@ def flatten_geoms(polygons):
 def ensure_multipolygon(p):
     if p.type == "MultiPolygon":
         return p
+    elif p.type != "Polygon":
+        raise ValueError(f"Cannot create multipolygon from type {p.type}")
     else:
         return sh.geometry.MultiPolygon([ p ])
