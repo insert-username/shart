@@ -96,7 +96,8 @@ class Coordinates:
     @staticmethod
     def polar(steps, fn=lambda theta: 1, theta_start=0, theta_stop=(math.pi * 2)):
         result = []
-        for theta in np.linspace(theta_start, theta_stop, num=steps, endpoint=(theta_start != theta_stop)):
+        halfpi = math.pi / 2
+        for theta in np.linspace(theta_start, theta_stop, num=steps, endpoint=(theta_start % halfpi != theta_stop % halfpi)):
             hypot = fn(theta)
             result.append(
                     (hypot * math.cos(theta), hypot * math.sin(theta)))
