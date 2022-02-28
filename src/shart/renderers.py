@@ -269,3 +269,4 @@ class RenderBuilder:
 
         primitive_renderer.finish_canvas()
 
+        return group
