@@ -16,6 +16,12 @@ class Coordinates:
     def offset(self, dx=0, dy=0):
         return Coordinates([ (c[0] + dx, c[1] + dy) for c in self.values ])
 
+    def multiply(self, fx, fy=None):
+        if fy is None:
+            fy = fx
+
+        return Coordinates([(c[0] * fx, c[1] * fy) for c in self.values])
+
     def __iter__(self):
         return self.values.__iter__()
 
@@ -88,9 +94,9 @@ class Coordinates:
                 yield((col * column_spacing + col_start + offs_x, row * row_spacing + offs_y))
 
     @staticmethod
-    def polar(steps, fn=lambda theta: 1):
+    def polar(steps, fn=lambda theta: 1, theta_start=0, theta_stop=(math.pi * 2)):
         result = []
-        for theta in np.linspace(0, math.pi * 2, num=steps, endpoint=False):
+        for theta in np.linspace(theta_start, theta_stop, num=steps, endpoint=(theta_start != theta_stop)):
             hypot = fn(theta)
             result.append(
                     (hypot * math.cos(theta), hypot * math.sin(theta)))
