@@ -270,7 +270,9 @@ class Group:
     def arrange(groups, clearance):
         x_current = 0
 
-        result = Group()
+        group_type = groups[0].type
+
+        result = Group(group_type())
         for g in groups:
             result = result.add(g.anchor().translate(x_current, 0))
             x_current += g.bounds_width + clearance
