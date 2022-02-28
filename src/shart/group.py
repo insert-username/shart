@@ -126,8 +126,8 @@ class Group:
 
         return Group(sh.affinity.translate(self.geoms, dx, dy))
 
-    def buffer(self, amount, resolution=16, join_style=sh.geometry.JOIN_STYLE.round):
-        return Group.from_geomarray([self.geoms.buffer(amount, resolution, join_style=join_style)])
+    def buffer(self, amount, resolution=16, join_style=sh.geometry.JOIN_STYLE.round, cap_style=sh.geometry.CAP_STYLE.round):
+        return Group.from_geomarray([self.geoms.buffer(amount, resolution, join_style=join_style, cap_style=cap_style)])
 
     def translate(self, dx, dy):
         return Group(sh.affinity.translate(self.geoms, dx, dy))
