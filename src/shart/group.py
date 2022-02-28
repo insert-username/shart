@@ -260,9 +260,9 @@ class Group:
         if len(flattened) == 0:
             return Group()
         elif flattened[0].type == "Polygon":
-            return Group(sh.geometry.MultiPolygon(flattened))
+            return Group(sh.geometry.MultiPolygon([f for f in flattened if not f.is_empty]))
         elif flattened[0].type == "LineString":
-            return Group(sh.geometry.MultiLineString(flattened))
+            return Group(sh.geometry.MultiLineString([f for f in flattened if not f.is_empty]))
         else:
             raise ValueError(f"Unsupported geom type: {flattened[0]}")
 
