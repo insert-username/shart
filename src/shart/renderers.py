@@ -109,10 +109,12 @@ class GeometryRenderer:
         self._y_offset = y_offset
 
     def render(self, geometry, primitive_renderer):
-        if geometry.type == "LineString":
+        if geometry.type == "LineString" or geometry.type == "LinearRing":
             self._render_linestring(geometry, primitive_renderer)
         elif geometry.type == "Polygon":
             self._render_linestring(geometry.exterior, primitive_renderer)
+            for i in geometry.interiors:
+                self.render(i, primitive_renderer)
         elif geometry.type == "MultiLineString":
             for linestring in geometry.geoms:
                 self._render_linestring(linestring, primitive_renderer)
