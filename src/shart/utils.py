@@ -110,10 +110,19 @@ def flatten_geoms(polygons):
     return result
 
 
+def ensure_multilinestring(l):
+    if l.type == "MultiLineString":
+        return l
+    elif l.type != "LineString":
+        raise ValueError(f"Cannot create multilinestring from type {l.type}")
+    else:
+        return sh.geometry.MultiLineString([l])
+
+
 def ensure_multipolygon(p):
     if p.type == "MultiPolygon":
         return p
     elif p.type != "Polygon":
         raise ValueError(f"Cannot create multipolygon from type {p.type}")
     else:
-        return sh.geometry.MultiPolygon([ p ])
+        return sh.geometry.MultiPolygon([p])
