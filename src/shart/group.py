@@ -32,6 +32,14 @@ class Group:
         return self.geoms.bounds[1]
 
     @property
+    def bounds_mid_x(self):
+        return self.bounds_x + self.bounds_width / 2
+
+    @property
+    def bounds_mid_y(self):
+        return self.bounds_y + self.bounds_height / 2
+
+    @property
     def bounds_width(self):
         return self.geoms.bounds[2] - self.geoms.bounds[0]
 
@@ -94,21 +102,21 @@ class Group:
 
     def union(self, geom=None):
         if geom is None:
-            polygons = flatten_geoms([g for g in self.geoms.geoms])
+            geoms = flatten_geoms([g for g in self.geoms.geoms])
 
-            union = sh.ops.unary_union(polygons)
+            union = sh.ops.unary_union(geoms)
 
-            return Group(ensure_multipolygon(union))
+            return Group(ensure_multipolygon(union) if self.type == sh.geometry.MultiPolygon else ensure_multilinestring(union))
 
         elif isinstance(geom, Group):
             return self.union(geom.geoms)
         elif geom.type == "MultiPolygon" or geom.type == "MultiLineString":
             subgeoms = [g for g in geom.geoms]
 
-            if len(subgeoms) != 1:
-                raise ValueError()
-
-            return self.union(subgeoms[0])
+            return Group.from_geomarray([sh.ops.unary_union(list(self.geoms.geoms) + subgeoms)])
+        elif len(geom.geoms) == 0:
+            # Union with an empty geom is just self
+            return self
         else:
             return Group(
                 sh.geometry.MultiPolygon([g.union(geom) for g in self.geoms.geoms])
