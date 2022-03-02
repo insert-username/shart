@@ -87,16 +87,11 @@ def circular_array(center_point, geom, count, geom_centroid=None, should_rotate=
     result = []
 
     for coord in coords:
-        translation_x = center_point.x + coord[0] - geom_centroid.x
-        translation_y = center_point.y + coord[1] - geom_centroid.y
-        instance = sh.affinity.translate(geom, translation_x, translation_y)
+        instance = geom
+        if not should_rotate:
+            instance = sh.affinity.rotate(instance, -coord[2], origin=geom_centroid, use_radians=True)
 
-        origin = sh.geometry.Point(
-            geom_centroid.x + translation_x,
-            geom_centroid.y + translation_y)
-
-        if should_rotate:
-            instance = sh.affinity.rotate(instance, coord[2], origin=origin, use_radians=True)
+        instance = sh.affinity.rotate(instance, coord[2], origin=center_point, use_radians=True)
 
         result.append(instance)
 
