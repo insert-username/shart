@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from shart.group import Group
 
 import shart.tools.maze as mz
@@ -20,9 +22,17 @@ if __name__ == "__main__":
     cell_scale = 20
 
         #.add(Group.from_text(f"You dingaling", "Linux Libertine O", 50).translate(0, 80))\
-    text = Group.from_text(f"Bazinga!", "Linux Libertine O", 100) \
-        .do(lambda g: Group(sh.validation.make_valid(g.geoms)))\
-        .to((maze_width * cell_scale) / 2, (maze_height * cell_scale) / 2)
+    text1 = Group.from_text(f"Luke", "Linux Libertine O", 100).do(lambda g: Group(sh.validation.make_valid(g.geoms)))\
+        .to((maze_width * cell_scale) / 4, (maze_height * cell_scale) / 4)
+
+    text2 = Group.from_text(f"Stella", "Linux Libertine O", 100).do(lambda g: Group(sh.validation.make_valid(g.geoms))) \
+        .to((maze_width * cell_scale) * 3 / 4, (maze_height * cell_scale) * 3 / 4)
+
+    text3 = Group.from_text(f"Let's find our way together", "Linux Libertine O", 50) \
+        .to((maze_width * cell_scale) * 2 / 4, (maze_height * cell_scale) * 4.5 / 4)
+
+    text = text1\
+        .add(text2)
 
     negative_cells = []
     for column in range(0, maze_width):
@@ -49,8 +59,9 @@ if __name__ == "__main__":
     maze_group = mz.MazeGroupFactory.get_maze_group(maze_positive)\
         .scale(cell_scale, cell_scale, origin=(0, 0))\
         .buffer(wall_thickness / 2)\
-        .add(text)
+        .add(text)\
+        .add(text3)
 
     print("Saving...")
 
-    maze_group.border(20, 20).do(RenderBuilder().svg().file("maze"))
+    maze_group.border(20, 20).border(20, 20).do(RenderBuilder().svg().file("maze"))
