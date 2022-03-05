@@ -7,6 +7,8 @@ import random
 
 import shapely as sh
 import shapely.geometry
+
+from shart.box import FingerGenerator, BoxFace
 from shart.coordinates import Coordinates
 from shart.group import Group
 from shart.line_generator import Turtle
@@ -22,7 +24,7 @@ def generate_window():
     rect_horiz = Group.rect_centered(0, 0, circ_main.bounds_width, random.uniform(0, 50))
     rect_vert = rect_horiz.rotate(90, use_radians=False, origin=(0, 0))
 
-    rect_center = Group.rect_centered(0, 0, random.uniform(60, 90), random.uniform(60, 90))
+    rect_center = Group.rect_centered(0, 0, random.uniform(70, 90), random.uniform(70, 90))
 
     spiral = Turtle(origin=(circ_inner.geoms.centroid.x, circ_inner.geoms.bounds[3])).pen_up()
 
@@ -49,11 +51,13 @@ def generate_window():
         .do(lambda g: g.to_boundary().add(spiral.intersection(g)))
 
     for i in range(0, randint(1, 3)):
-        window_vector = window_vector.add(Group.line(0, 0, -random.uniform(100, 400), 300).intersection(circ_main).difference(circ_inner))
+        window_vector = window_vector.add(
+            Group.line(0, 0, -random.uniform(100, 400), 300).intersection(circ_main).difference(circ_inner))
 
     for i in range(0, randint(0, 3)):
         h_pos0 = -random.uniform(40, 70)
-        window_vector = window_vector.add(Group.line(h_pos0, spiral.bounds_y, h_pos0, rect_horiz.bounds_y + rect_horiz.bounds_height))
+        window_vector = window_vector.add(
+            Group.line(h_pos0, spiral.bounds_y, h_pos0, rect_horiz.bounds_y + rect_horiz.bounds_height))
 
     for i in range(0, randint(0, 3)):
         v_pos0 = -random.uniform(50, 100)
@@ -63,9 +67,64 @@ def generate_window():
         .do_and_add(lambda g: g.scale(-1, 1, origin=(0, 0)))\
         .do_and_add(lambda g: g.scale(1, -1, origin=(0, 0)))
 
-    window_outer = window_vector.buffer(3, join_style=shapely.geometry.JOIN_STYLE.mitre, cap_style=shapely.geometry.CAP_STYLE.flat)
+    buffer_amount = 4
+    circ_outer=Group.from_geomarray([ sh.geometry.Polygon(circ_main.buffer(buffer_amount).geoms.geoms[0].exterior.coords) ])
+
+    window_buffered = window_vector.buffer(buffer_amount, join_style=shapely.geometry.JOIN_STYLE.mitre, cap_style=shapely.geometry.CAP_STYLE.flat).union()
+
+    circ_lines = circ_outer.to_boundary().difference(window_buffered)
+
     window_inner = window_vector.scale(0.2)
-    return window_outer.to_boundary().add(window_inner)
+    return window_buffered.union(rect_center).to_boundary().intersection(circ_outer.buffer(-0.1))\
+        .add(circ_outer.to_boundary())\
+        .add(circ_lines)\
+        .add(window_inner)
+
+
+def place_in_box(group, is_wall):
+    box_size = 80
+
+    fgen_male = FingerGenerator.create_for_length(box_size, 5, True, 4, 0.2, 0.1)
+    fgen_female = FingerGenerator.create_for_length(box_size, 5, False, 4, 0.1, 0.1)
+
+    bf = BoxFace(Group.rect_centered(0, 0, box_size, box_size).geoms.geoms[0])
+
+
+    # top
+    bf.assign_edge(0, fgen_female)
+
+    # right
+    bf.assign_edge(3, fgen_female)
+
+    # bottom
+    bf.assign_edge(2, fgen_male if is_wall else fgen_female)
+    # left
+    bf.assign_edge(1, fgen_male if is_wall else fgen_female)
+
+    box_group = bf.generate_group()
+
+    return box_group.union().to_boundary().add(group)
+
+def get_floor_box():
+    box_size = 80
+
+    fgen_male = FingerGenerator.create_for_length(box_size, 5, True, 4, 0.2, 0.1)
+
+    bf = BoxFace(Group.rect_centered(0, 0, box_size, box_size).geoms.geoms[0])
+
+    # top
+    bf.assign_edge(0, fgen_male)
+
+    # right
+    bf.assign_edge(3, fgen_male)
+
+    # bottom
+    bf.assign_edge(2, fgen_male)
+
+    # left
+    bf.assign_edge(1, fgen_male)
+
+    return bf.generate_group().union().to_boundary()
 
 
 if __name__ == "__main__":
@@ -79,10 +138,15 @@ if __name__ == "__main__":
     if args.seed is not None:
         random.seed(args.seed)
 
-    windows = Group.arrange([ generate_window() for i in range(0, args.count) ], 30)
+    windows = Group.arrange(
+        [place_in_box(generate_window().scale(0.25), is_wall=True) for i in range(0, 4)] +
+        [place_in_box(generate_window().scale(0.25), is_wall=False) for i in range(0, 1)] +
+        [ get_floor_box() ],
+        30
+    )
 
     print("Rendering...")
     windows\
         .border(20, 20)\
-        .do(RenderBuilder().svg().file(args.output_file_name))
+        .do(RenderBuilder().svg().units_mm().file(args.output_file_name))
 
