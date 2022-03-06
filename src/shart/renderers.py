@@ -1,19 +1,26 @@
 import cairo
 
 from defusedxml import ElementTree as etree
+import shapely as sh
+import shapely.validation
+import shapely.geometry
+
 
 class PrimitiveRenderer:
 
     def init_canvas(self):
         raise NotImplementedError()
 
-    def start_line(self, x0, y0):
+    def start_path(self, x0, y0):
         raise NotImplementedError()
 
-    def line_point(self, x0, y0):
+    def path_point(self, x0, y0):
         raise NotImplementedError()
 
-    def finish_line(self):
+    def path_move_to(self, x0, y0):
+        raise NotImplementedError()
+
+    def close_path(self, color=None, fill=False):
         raise NotImplementedError()
 
     def finish_canvas(self):
@@ -79,17 +86,29 @@ class SVGPrimitiveRenderer(PrimitiveRenderer):
 
         self.context.set_line_width(1)
         self.context.set_line_join(cairo.LINE_JOIN_MITER)
-        self.context.set_source_rgb(0, 0, 0)
+        self.context.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)
 
-    def start_line(self, x0, y0):
+    def start_path(self, x0, y0):
         self.context.new_path()
         self.context.move_to(x0, y0)
 
-    def line_point(self, x0, y0):
+    def path_point(self, x0, y0):
         self.context.line_to(x0, y0)
 
-    def finish_line(self):
-        self.context.stroke()
+    def path_move_to(self, x0, y0):
+        self.context.move_to(x0, y0)
+
+    def close_path(self, color=None, fill=False):
+        if color is None:
+            self.context.set_source_rgb(0, 0, 0)
+        else:
+            self.context.set_source_rgba(*color)
+
+        if fill:
+            self.context.fill()
+        else:
+            self.context.stroke()
+
         self.context.close_path()
 
     def finish_canvas(self):
@@ -108,28 +127,58 @@ class GeometryRenderer:
         self._x_offset = x_offset
         self._y_offset = y_offset
 
-    def render(self, geometry, primitive_renderer):
+    def _offset_coords(self, x, y):
+        return self._x_offset + x, self._y_offset + y
+
+    @staticmethod
+    def _geom_attrs_to_named_args(geom_attributes):
+        return {
+            "color": geom_attributes.get("color", (0, 0, 0)),
+            "fill": geom_attributes.get("fill", False)
+        }
+
+    def render(self, geometry, primitive_renderer, geom_attributes):
         if geometry.type == "LineString" or geometry.type == "LinearRing":
-            self._render_linestring(geometry, primitive_renderer)
+            self._render_linestring(geometry, primitive_renderer, geom_attributes)
         elif geometry.type == "Polygon":
-            self._render_linestring(geometry.exterior, primitive_renderer)
-            for i in geometry.interiors:
-                self.render(i, primitive_renderer)
+            self._render_polygon(
+                geometry.exterior,
+                geometry.interiors,
+                primitive_renderer, geom_attributes)
+        elif geometry.type == "MultiPolygon":
+            for g in geometry.geoms:
+                self.render(g, primitive_renderer, geom_attributes)
         elif geometry.type == "MultiLineString":
             for linestring in geometry.geoms:
-                self._render_linestring(linestring, primitive_renderer)
+                self._render_linestring(linestring, primitive_renderer, geom_attributes)
         else:
             raise ValueError(f"Unsupported geometry type: {geometry.type}")
 
-    def _render_linestring(self, linestring, primitive_renderer):
-        start_coord = linestring.coords[0]
+    def _render_polygon(self, linear_ring_exterior, linear_ring_interiors, primitive_renderer, geom_attributes):
+        primitive_renderer.start_path(*self._offset_coords(*linear_ring_exterior.coords[0]))
 
-        primitive_renderer.start_line(start_coord[0] + self._x_offset, start_coord[1] + self._y_offset)
+        for c in linear_ring_exterior.coords[1:]:
+            primitive_renderer.path_point(*self._offset_coords(*c))
+
+        for interior_ring in linear_ring_interiors:
+            if interior_ring.is_ccw == linear_ring_exterior.is_ccw:
+                raise ValueError(f"Exterior ring cww({linear_ring_exterior.is_ccw}) does not differ from "
+                                 f"interior ring ccw({interior_ring.is_ccw}). Coordinate orientation must differ "
+                                 f"for rendering to work correctly.")
+
+            primitive_renderer.path_move_to(*self._offset_coords(*interior_ring.coords[0]))
+            for c in interior_ring.coords[1:]:
+                primitive_renderer.path_point(*self._offset_coords(*c))
+
+        primitive_renderer.close_path(**self._geom_attrs_to_named_args(geom_attributes))
+
+    def _render_linestring(self, linestring, primitive_renderer, geom_attributes):
+        primitive_renderer.start_path(*self._offset_coords(*linestring.coords[0]))
 
         for c in linestring.coords[1:]:
-            primitive_renderer.line_point(c[0] + self._x_offset, c[1] + self._y_offset)
+            primitive_renderer.path_point(c[0] + self._x_offset, c[1] + self._y_offset)
 
-        primitive_renderer.finish_line()
+        primitive_renderer.close_path(**self._geom_attrs_to_named_args(geom_attributes))
 
 
 class GroupRenderer:
@@ -264,8 +313,11 @@ class RenderBuilder:
 
         self._pre_render_callback(geometry_renderer, primitive_renderer)
 
-        for geom in group.geoms.geoms:
-            geometry_renderer.render(geom, primitive_renderer)
+        gm = group.geom_attributes_manager
+
+        for index, geom in enumerate(group.geoms.geoms):
+            attributes = gm.get_geom_attributes(index)
+            geometry_renderer.render(geom, primitive_renderer, attributes)
 
         self._post_render_callback(geometry_renderer, primitive_renderer)
 

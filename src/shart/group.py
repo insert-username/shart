@@ -8,12 +8,14 @@ import shapely.affinity
 
 import cairo
 
+import shart.geom_attributes
+from .geom_attributes import GeomAttributesManager, MutableGeomAttributesManager
 from .utils import *
 
 
 class Group:
 
-    def __init__(self, geoms=None):
+    def __init__(self, geoms=None, geom_attributes_manager=None):
         if geoms is None:
             self.geoms = sh.geometry.MultiPolygon([])
             self.type = sh.geometry.MultiPolygon
@@ -23,6 +25,26 @@ class Group:
 
             self.geoms = geoms
             self.type = type(geoms)
+
+        if geom_attributes_manager is None:
+            self.geom_attributes_manager = GeomAttributesManager()
+        elif not isinstance(geom_attributes_manager, GeomAttributesManager):
+            raise ValueError(f"geom_attributes_manager is not an instance "
+                             f"of GeomAttributesManager, instead: {type(geom_attributes_manager)}")
+        else:
+            self.geom_attributes_manager = geom_attributes_manager
+
+    def explode(self):
+        for i, g in enumerate(self.geoms.geoms):
+            subgroup = Group(self.type([g]), self.geom_attributes_manager.extract_index(i))
+            yield subgroup
+
+    def add_geom_attribute(self, key, value):
+        new_attrib_manager = self.geom_attributes_manager
+        for i, g in enumerate(self.geoms.geoms):
+            new_attrib_manager = new_attrib_manager.add_geom_attribute(i, key, value)
+
+        return Group(self.geoms, new_attrib_manager)
 
     @property
     def bounds_x(self):
@@ -49,7 +71,10 @@ class Group:
         return self.geoms.bounds[3] - self.geoms.bounds[1]
 
     def anchor(self):
-        return Group(anchor_geom(self.geoms)(self.geoms))
+        # anchor is translation, which should preserve geom indices
+        anchored_geoms = anchor_geom(self.geoms)(self.geoms)
+
+        return Group(anchored_geoms, self.geom_attributes_manager)
 
     def border(self, border_thickness, border_radius):
         border_geom = create_border_box(self.geoms, border_thickness, border_radius)
@@ -60,10 +85,26 @@ class Group:
         return Group(
             self.type(
                 [g for g in self.geoms.geoms] + [border_geom]
-            ))
+            ), self.geom_attributes_manager)  # indices preserved as border is appended
 
     def filter(self, predicate):
-        return Group.from_geomarray([ g for g in self.geoms.geoms if predicate(Group.from_geomarray([g])) ])
+        filtered_geoms = []
+        filtered_gam = MutableGeomAttributesManager.copy(self.geom_attributes_manager)
+        for i, g in enumerate(self.geoms.geoms):
+            from_index = i
+
+            predicate_group = Group.from_geomarray([g], self.geom_attributes_manager.extract_index(i))
+
+            if predicate(predicate_group):
+                to_index = len(filtered_geoms)
+
+                # index of geom will change from i to len(filtered_geoms)
+                filtered_gam.move_geom_attributes(from_index, to_index)
+                filtered_geoms.append(g)
+            else:
+                filtered_gam.remove_geom_attributes(from_index)
+
+        return Group.from_geomarray(filtered_geoms, filtered_gam.to_immutable())
 
     def do_and_add(self, modifier):
         return self.add(modifier(self))
@@ -72,45 +113,65 @@ class Group:
         return modifier(self)
 
     def map_subgroups(self, modifier):
-        return Group().add_all([ modifier(Group.from_geomarray([g])) for g in self.geoms.geoms ])
+        return Group().add_all(
+            [modifier(g) for g in self.explode()]
+        )
 
-    def add(self, geom):
-        if isinstance(geom, Group):
-            return self.add(geom.geoms)
-        elif isinstance(geom, self.type):
-            return Group.from_geomarray(
-                list(self.geoms.geoms) + list(geom.geoms))
-        else:
-            hint = ""
-            if self.type == sh.geometry.MultiLineString and type(geom) == sh.geometry.MultiPolygon:
-                hint = "Did you mean to call to_boundary() ?"
+    def add(self, group):
+        if not isinstance(group, Group):
+            raise ValueError("Added group is of wrong type.")
 
-            raise ValueError(f"Cannot add type {type(geom)} to group of type {self.type}. " + hint)
+        geom_array = [g for g in self.geoms.geoms] + [g for g in group.geoms.geoms]
+        gam = self.geom_attributes_manager.union(
+            group.geom_attributes_manager.offset_keys(len(self.geoms.geoms)))
+
+        return Group(self.type(geom_array), gam)
 
     def add_all(self, groups):
-        new_geoms = [ g for g in self.geoms.geoms ]
+        result_geomarray = [g for g in self.geoms.geoms]
+        result_attributes = MutableGeomAttributesManager.copy(self.geom_attributes_manager)
+        key_index_offset = len(result_geomarray)
 
-        for group in groups:
-            new_geoms += [ g for g in group.geoms.geoms ]
+        for g in groups:
+            result_geomarray += [geom for geom in g.geoms.geoms]
+            for k, v in g.geom_attributes_manager.attributes:
+                result_attributes.add_attributes(k + key_index_offset, v)
+            key_index_offset += len(g.geoms.geoms)
 
-        return Group.from_geomarray(new_geoms)
+        return Group(self.type(result_geomarray), result_attributes.to_immutable())
 
     def intersection(self, group):
         return self.foreach_modify(lambda g: g.intersection(group.geoms))
 
     def difference(self, group):
-        return self.foreach_modify(lambda g: g.difference(group.geoms))
+        result = Group(self.type([]))
+
+        for i, g in enumerate(self.geoms.geoms):
+            g_diff = flatten_geoms([g.difference(group.geoms)])
+
+            if len(g_diff) > 0:
+                geom_attributes = self.geom_attributes_manager.get_geom_attributes(i)
+                diff_group = Group(self.type(g_diff), GeomAttributesManager({0: geom_attributes}))
+                result = result.add(diff_group)
+
+        return result
 
     def union(self, geom=None):
         if geom is None:
-            geoms = flatten_geoms([g for g in self.geoms.geoms])
+            union = flatten_geoms([sh.ops.unary_union([g for g in self.geoms.geoms])])
+            combined_attributes = dict()
 
-            union = sh.ops.unary_union(geoms)
+            for k, d in self.geom_attributes_manager.attributes:
+                combined_attributes.update(d)
 
-            return Group(ensure_multipolygon(union) if self.type == sh.geometry.MultiPolygon else ensure_multilinestring(union))
+            gam = MutableGeomAttributesManager()
+            for i, g in enumerate(union):
+                gam.add_attributes(i, combined_attributes)
+
+            return Group(self.type(union), gam.to_immutable())
 
         elif isinstance(geom, Group):
-            return self.union(geom.geoms)
+            return self.add(geom).union()
         elif geom.type == "MultiPolygon" or geom.type == "MultiLineString":
             subgeoms = [g for g in geom.geoms]
 
@@ -139,7 +200,7 @@ class Group:
         return Group.from_geomarray([self.geoms.buffer(amount, resolution, join_style=join_style, cap_style=cap_style)])
 
     def translate(self, dx, dy):
-        return Group(sh.affinity.translate(self.geoms, dx, dy))
+        return Group(sh.affinity.translate(self.geoms, dx, dy), self.geom_attributes_manager)
 
     def scale(self, x, y=None, origin='center'):
         y = y or x
@@ -150,22 +211,27 @@ class Group:
         if origin is None:
             origin = 'centroid'
 
-        return Group(sh.affinity.rotate(self.geoms, angle, use_radians=use_radians, origin=origin))
+        # rotations will preserve indices of sub-geometries
+        return Group(
+            sh.affinity.rotate(self.geoms, angle, use_radians=use_radians, origin=origin),
+            self.geom_attributes_manager)
 
     def spin(self, center_x, center_y, count, geom_centroid=None, should_rotate=False):
-
-        polys = circular_array(
-                sh.geometry.Point(center_x, center_y),
-                self.geoms,
-                count,
-                geom_centroid,
-                should_rotate)
+        if geom_centroid is None:
+            geom_centroid = self.geoms.centroid
 
         result = Group(self.type([]))
-        for p in polys:
-            result = result.add(p)
+        angles = (a for a in np.linspace(0, 2 * math.pi, count, endpoint=False))
+        for theta in angles:
+            instance = self
+            if not should_rotate:
+                instance = instance.rotate(-theta, use_radians=True, origin=geom_centroid)
 
-        return Group(result.geoms)
+            instance = instance.rotate(theta, use_radians=True, origin=sh.geometry.Point(center_x, center_y))
+
+            result = result.add(instance)
+
+        return result
 
     def linarray(self, count, geom_modifier):
         result = Group()
@@ -195,9 +261,9 @@ class Group:
         for g in subgroups:
             g._recurse(modifier, depth - 1, result)
 
-    # todo: deprecated
+    # todo: deprecated, use explode instead
     def foreach_modify(self, modifier):
-        return Group.from_geomarray([ modifier(g) for g in self.geoms.geoms ])
+        return Group.from_geomarray([modifier(g) for g in self.geoms.geoms], self.geom_attributes_manager)
 
     @staticmethod
     def circle(cx, cy, diameter, resolution=0.5):
@@ -263,15 +329,15 @@ class Group:
         return Group.rect(x - width / 2, y - height / 2, width, height)
 
     @staticmethod
-    def from_geomarray(geomarray):
+    def from_geomarray(geomarray, geom_attributes_manager=None):
         flattened = flatten_geoms(geomarray)
 
         if len(flattened) == 0:
-            return Group()
+            return Group(geoms=None, geom_attributes_manager=geom_attributes_manager)
         elif flattened[0].type == "Polygon":
-            return Group(sh.geometry.MultiPolygon([f for f in flattened if not f.is_empty]))
+            return Group(sh.geometry.MultiPolygon([f for f in flattened if not f.is_empty]), geom_attributes_manager=geom_attributes_manager)
         elif flattened[0].type == "LineString":
-            return Group(sh.geometry.MultiLineString([f for f in flattened if not f.is_empty]))
+            return Group(sh.geometry.MultiLineString([f for f in flattened if not f.is_empty]), geom_attributes_manager=geom_attributes_manager)
         else:
             raise ValueError(f"Unsupported geom type: {flattened[0]}")
 

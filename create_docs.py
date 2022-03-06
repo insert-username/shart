@@ -14,6 +14,20 @@ from shart.group import Group
 from shart.line_generator import Turtle
 from shart.renderers import RenderBuilder
 
+print("Creating attributes #1")
+c1 = Group.circle(0, 0, 100)\
+    .add_geom_attribute("fill", True)\
+    .add_geom_attribute("color", (1, 0, 0))
+c2 = c1.translate(70, 0).add_geom_attribute("color", (0, 1, 0, 0.5))
+c3 = c2.translate(70, 0).add_geom_attribute("color", (0, 0, 1, 0.75))
+c1.add(c2).add(c3).border(20, 20).do(RenderBuilder().svg().file("doc/attributes-demo-1"))
+
+print("Creating attributes #2")
+Group.circle(0, 0, 100).difference(Group.circle(0, 0, 50)) \
+    .add_geom_attribute("fill", True) \
+    .add_geom_attribute("color", (1, 0, 0)) \
+    .border(20, 20)\
+    .do(RenderBuilder().svg().file("doc/attributes-demo-2"))
 
 print("Creating circle")
 
@@ -296,7 +310,7 @@ Group.circle(0, 0, 100) \
         .svg()
         .file("doc/non-group")
         .post_render_callback(
-            lambda geom_r, prim_r: [geom_r.render(eg, prim_r) for eg in extra_geoms]))
+            lambda geom_r, prim_r: [geom_r.render(eg, prim_r, {}) for eg in extra_geoms]))
 
 print("Creating text")
 
