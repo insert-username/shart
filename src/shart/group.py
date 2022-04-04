@@ -141,7 +141,13 @@ class Group:
         return Group(self.type(result_geomarray), result_attributes.to_immutable())
 
     def intersection(self, group):
-        return self.foreach_modify(lambda g: g.intersection(group.geoms))
+        intersections = (g.intersection(group.geoms) for g in self.geoms.geoms)
+
+        if self.type == sh.geometry.MultiPolygon:
+            # possible line intersections. these should be filtered out
+            intersections = (i for i in intersections if i.type == "Polygon")
+
+        return Group.from_geomarray(list(intersections))
 
     def difference(self, group):
         result = Group(self.type([]))
@@ -205,7 +211,7 @@ class Group:
     def scale(self, x, y=None, origin='center'):
         y = y or x
 
-        return Group(sh.affinity.scale(self.geoms, xfact=x, yfact=y, origin=origin))
+        return Group(sh.affinity.scale(self.geoms, xfact=x, yfact=y, origin=origin), self.geom_attributes_manager)
 
     def rotate(self, angle, use_radians=True, origin=None):
         if origin is None:
