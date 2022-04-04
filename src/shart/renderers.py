@@ -20,7 +20,10 @@ class PrimitiveRenderer:
     def path_move_to(self, x0, y0):
         raise NotImplementedError()
 
-    def close_path(self, color=None, fill=False):
+    def draw_path(self, color=None, fill=False):
+        raise NotImplementedError()
+
+    def close_path(self):
         raise NotImplementedError()
 
     def finish_canvas(self):
@@ -98,7 +101,7 @@ class SVGPrimitiveRenderer(PrimitiveRenderer):
     def path_move_to(self, x0, y0):
         self.context.move_to(x0, y0)
 
-    def close_path(self, color=None, fill=False):
+    def draw_path(self, color=None, fill=False):
         if color is None:
             self.context.set_source_rgb(0, 0, 0)
         else:
@@ -109,6 +112,7 @@ class SVGPrimitiveRenderer(PrimitiveRenderer):
         else:
             self.context.stroke()
 
+    def close_path(self):
         self.context.close_path()
 
     def finish_canvas(self):
@@ -170,7 +174,8 @@ class GeometryRenderer:
             for c in interior_ring.coords[1:]:
                 primitive_renderer.path_point(*self._offset_coords(*c))
 
-        primitive_renderer.close_path(**self._geom_attrs_to_named_args(geom_attributes))
+        primitive_renderer.close_path()
+        primitive_renderer.draw_path(**self._geom_attrs_to_named_args(geom_attributes))
 
     def _render_linestring(self, linestring, primitive_renderer, geom_attributes):
         primitive_renderer.start_path(*self._offset_coords(*linestring.coords[0]))
@@ -178,7 +183,8 @@ class GeometryRenderer:
         for c in linestring.coords[1:]:
             primitive_renderer.path_point(c[0] + self._x_offset, c[1] + self._y_offset)
 
-        primitive_renderer.close_path(**self._geom_attrs_to_named_args(geom_attributes))
+        primitive_renderer.draw_path(**self._geom_attrs_to_named_args(geom_attributes))
+        primitive_renderer.close_path()
 
 
 class GroupRenderer:
