@@ -85,6 +85,9 @@ class GeomAttributesManager:
 
         return GeomAttributesManager(new_attributes)
 
+    def get_geom_attributes(self, geom_index):
+        return copy.deepcopy(self._attributes.get(geom_index, dict()))
+
     def move_geom_attributes(self, index_from, index_to):
         if index_from not in self._attributes:
             return self # nothing to do
