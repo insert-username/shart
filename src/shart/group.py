@@ -361,13 +361,13 @@ class Group:
         return result
 
     @staticmethod
-    def from_text(text, font_face, font_size):
+    def from_text(text, font_face, font_size, font_slant=cairo.FontSlant.NORMAL, font_weight=cairo.FontWeight.NORMAL):
         # Annoyingly a value of int('inf'), 0, -1, or some other constant won't work here as for small dimensions
         # text seems to get cut off at arbitrary limits, so I just went with a "very big number".
         surface = cairo.SVGSurface(None, 2147483647, 2147483647)
         context = cairo.Context(surface)
 
-        context.select_font_face(font_face, cairo.FontSlant.NORMAL, cairo.FontWeight.NORMAL)
+        context.select_font_face(font_face, font_slant, font_weight)
         context.set_font_size(font_size)
 
         context.move_to(0, 0)
